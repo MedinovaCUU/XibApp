@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		6D5650152E7B98E2005A3766 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 6D5650142E7B98E2005A3766 /* Auth */; };
+		6D5650172E7B98E2005A3766 /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 6D5650162E7B98E2005A3766 /* Functions */; };
+		6D5650192E7B98E2005A3766 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 6D5650182E7B98E2005A3766 /* PostgREST */; };
+		6D56501B2E7B98E2005A3766 /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 6D56501A2E7B98E2005A3766 /* Realtime */; };
+		6D56501D2E7B98E2005A3766 /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 6D56501C2E7B98E2005A3766 /* Storage */; };
+		6D7FCA6E2E7BA0A5000BC851 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 6D7FCA6D2E7BA0A5000BC851 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		6D20ED082E6F4FC50041B24E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +38,22 @@
 		6D20ED112E6F4FC50041B24E /* XibAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XibAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		6D94F8D92E70B66E00593739 /* Exceptions for "XibApp" folder in "XibApp" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 6D20ECF72E6F4FC30041B24E /* XibApp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		6D20ECFA2E6F4FC30041B24E /* XibApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				6D94F8D92E70B66E00593739 /* Exceptions for "XibApp" folder in "XibApp" target */,
+			);
 			path = XibApp;
 			sourceTree = "<group>";
 		};
@@ -52,6 +74,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6D5650192E7B98E2005A3766 /* PostgREST in Frameworks */,
+				6D5650172E7B98E2005A3766 /* Functions in Frameworks */,
+				6D7FCA6E2E7BA0A5000BC851 /* Supabase in Frameworks */,
+				6D5650152E7B98E2005A3766 /* Auth in Frameworks */,
+				6D56501D2E7B98E2005A3766 /* Storage in Frameworks */,
+				6D56501B2E7B98E2005A3766 /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +106,7 @@
 				6D20ECFA2E6F4FC30041B24E /* XibApp */,
 				6D20ED0A2E6F4FC50041B24E /* XibAppTests */,
 				6D20ED142E6F4FC50041B24E /* XibAppUITests */,
+				6D5650122E7B9427005A3766 /* Frameworks */,
 				6D20ECF92E6F4FC30041B24E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +119,13 @@
 				6D20ED112E6F4FC50041B24E /* XibAppUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		6D5650122E7B9427005A3766 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +148,12 @@
 			);
 			name = XibApp;
 			packageProductDependencies = (
+				6D5650142E7B98E2005A3766 /* Auth */,
+				6D5650162E7B98E2005A3766 /* Functions */,
+				6D5650182E7B98E2005A3766 /* PostgREST */,
+				6D56501A2E7B98E2005A3766 /* Realtime */,
+				6D56501C2E7B98E2005A3766 /* Storage */,
+				6D7FCA6D2E7BA0A5000BC851 /* Supabase */,
 			);
 			productName = XibApp;
 			productReference = 6D20ECF82E6F4FC30041B24E /* XibApp.app */;
@@ -171,7 +213,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1640;
-				LastUpgradeCheck = 1640;
+				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					6D20ECF72E6F4FC30041B24E = {
 						CreatedOnToolsVersion = 16.4;
@@ -195,6 +237,9 @@
 			);
 			mainGroup = 6D20ECEF2E6F4FC30041B24E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				6D5650132E7B98E2005A3766 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6D20ECF92E6F4FC30041B24E /* Products */;
 			projectDirPath = "";
@@ -328,6 +373,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -385,6 +431,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
@@ -393,13 +440,14 @@
 		6D20ED1C2E6F4FC50041B24E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = LogoNew;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = VL8BWX6G64;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = XibApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -421,13 +469,14 @@
 		6D20ED1D2E6F4FC50041B24E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = LogoNew;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = VL8BWX6G64;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = XibApp/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -558,6 +607,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		6D5650132E7B98E2005A3766 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		6D5650142E7B98E2005A3766 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6D5650132E7B98E2005A3766 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		6D5650162E7B98E2005A3766 /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6D5650132E7B98E2005A3766 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		6D5650182E7B98E2005A3766 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6D5650132E7B98E2005A3766 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		6D56501A2E7B98E2005A3766 /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6D5650132E7B98E2005A3766 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		6D56501C2E7B98E2005A3766 /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6D5650132E7B98E2005A3766 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		6D7FCA6D2E7BA0A5000BC851 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6D5650132E7B98E2005A3766 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6D20ECF02E6F4FC30041B24E /* Project object */;
 }

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdheWpvb3Bxc2x1b2dtcGh6bWJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzkxNzMsImV4cCI6MjA4ODYxNTE3M30.GLYvRy7NESdgNSxtttFAYwnDfuYuM7pLUlIEpRCy88U</string>
+	<key>SUPABASE_PROJECT_ID</key>
+	<string>gayjoopqsluogmphzmbp</string>
+	<key>SUPABASE_URL</key>
+	<string>https://gayjoopqsluogmphzmbp.supabase.co</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Oxanium-Bold.ttf</string>
+		<string>Oxanium-Regular.ttf</string>
+		<string>Oxanium-ExtraLight.ttf</string>
+	</array>
+</dict>
+</plist>
