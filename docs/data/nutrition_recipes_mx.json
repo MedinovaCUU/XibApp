@@ -1,0 +1,125 @@
+[
+  {
+    "id": "mx-breakfast-omelette",
+    "title": "Huevos a la mexicana con frijoles",
+    "subtitle": "Desayuno alto en proteína y fibra",
+    "mealType": "Desayuno",
+    "prepMinutes": 18,
+    "servings": 1,
+    "macros": {
+      "calories": 520,
+      "protein": 31,
+      "carbs": 39,
+      "fats": 24
+    },
+    "ingredients": [
+      "3 huevos",
+      "1/3 taza de frijoles de la olla",
+      "1/4 cebolla blanca picada",
+      "1 jitomate picado",
+      "1 chile serrano (opcional)",
+      "1 cucharadita de aceite de oliva",
+      "Sal y pimienta"
+    ],
+    "steps": [
+      "Sofríe cebolla, jitomate y chile en aceite por 3 minutos.",
+      "Agrega huevo batido con sal y pimienta; cocina hasta cuajar.",
+      "Sirve con frijoles calientes al lado."
+    ],
+    "tags": [
+      "Económica",
+      "Rápida",
+      "Alta proteína"
+    ]
+  },
+  {
+    "id": "mx-lunch-chicken-bowl",
+    "title": "Bowl de pollo, arroz y nopales",
+    "subtitle": "Comida equilibrada para recuperación",
+    "mealType": "Comida",
+    "prepMinutes": 28,
+    "servings": 1,
+    "macros": {
+      "calories": 730,
+      "protein": 55,
+      "carbs": 80,
+      "fats": 18
+    },
+    "ingredients": [
+      "170 g pechuga de pollo",
+      "3/4 taza arroz cocido",
+      "1 taza nopales cocidos",
+      "1/2 aguacate pequeño",
+      "Jugo de limón",
+      "Sal, pimienta y comino"
+    ],
+    "steps": [
+      "Sazona y cocina el pollo a la plancha hasta dorar.",
+      "Arma el bowl con arroz, nopales y aguacate.",
+      "Corta el pollo en tiras y agrega limón al final."
+    ],
+    "tags": [
+      "Post-entreno",
+      "Sin fritura"
+    ]
+  },
+  {
+    "id": "mx-snack-yogurt",
+    "title": "Yogur griego con nuez y frutos rojos",
+    "subtitle": "Colación rápida para mantener saciedad",
+    "mealType": "Colación",
+    "prepMinutes": 5,
+    "servings": 1,
+    "macros": {
+      "calories": 290,
+      "protein": 21,
+      "carbs": 24,
+      "fats": 12
+    },
+    "ingredients": [
+      "200 g yogur griego natural",
+      "20 g nuez troceada",
+      "1/2 taza frutos rojos",
+      "Canela al gusto"
+    ],
+    "steps": [
+      "Sirve el yogur en un bowl.",
+      "Agrega frutos rojos y nuez por encima.",
+      "Espolvorea canela y consume frío."
+    ],
+    "tags": [
+      "No cocción",
+      "Alta proteína"
+    ]
+  },
+  {
+    "id": "mx-dinner-fish",
+    "title": "Pescado al sartén con quinoa y verduras",
+    "subtitle": "Cena ligera con buen perfil de grasas",
+    "mealType": "Cena",
+    "prepMinutes": 24,
+    "servings": 1,
+    "macros": {
+      "calories": 610,
+      "protein": 47,
+      "carbs": 55,
+      "fats": 18
+    },
+    "ingredients": [
+      "160 g filete de pescado blanco",
+      "2/3 taza quinoa cocida",
+      "1 taza verduras mixtas al vapor",
+      "1 cucharadita aceite de oliva",
+      "Ajo en polvo, sal y pimienta"
+    ],
+    "steps": [
+      "Sazona el pescado y cocínalo en sartén antiadherente.",
+      "Calienta quinoa y verduras por separado.",
+      "Sirve todo junto y termina con aceite de oliva."
+    ],
+    "tags": [
+      "Ligera",
+      "Cena"
+    ]
+  }
+]

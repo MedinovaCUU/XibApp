@@ -4,19 +4,25 @@ XibApp es una app iOS construida con SwiftUI para entrenamiento, nutricion, reto
 
 ## Online
 
-Este repositorio publica una landing en GitHub Pages desde `docs/`.
+Este repositorio publica una app web estatica en GitHub Pages desde `docs/`.
 
-La pagina web es una presentacion del proyecto. La app completa sigue siendo nativa para iPhone y se ejecuta desde Xcode.
+La version web incluye:
+
+- recomendador de entrenamiento
+- explorador de ejercicios
+- recetas y lista de compras
+- retos y progreso persistidos en `localStorage`
+
+La app iOS sigue existiendo en paralelo y se ejecuta desde Xcode.
 
 ## Estructura
 
 - `XibApp/`: codigo fuente de la app
 - `supabase/`: esquema y seeds para el backend
-- `docs/`: pagina estatica publicada con GitHub Pages
+- `docs/`: SPA web publicada con GitHub Pages
 
 ## Ejecutar localmente
 
 1. Abre `XibApp.xcodeproj` en Xcode.
 2. Selecciona el scheme de la app.
 3. Ejecuta en simulador o dispositivo.
-
