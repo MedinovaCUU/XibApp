@@ -8,12 +8,12 @@ const STORAGE_KEYS = {
 };
 
 const VIEW_OPTIONS = [
-  { id: "dashboard", label: "Inicio" },
-  { id: "training", label: "Entrenamiento" },
-  { id: "explorer", label: "Ejercicios" },
-  { id: "nutrition", label: "Nutricion" },
-  { id: "challenges", label: "Retos" },
-  { id: "progress", label: "Progreso" },
+  { id: "dashboard", label: "Inicio", shortLabel: "Inicio", kicker: "01" },
+  { id: "training", label: "Entrenamiento", shortLabel: "Plan", kicker: "02" },
+  { id: "explorer", label: "Ejercicios", shortLabel: "Explora", kicker: "03" },
+  { id: "nutrition", label: "Nutricion", shortLabel: "Nutre", kicker: "04" },
+  { id: "challenges", label: "Retos", shortLabel: "Retos", kicker: "05" },
+  { id: "progress", label: "Progreso", shortLabel: "Stats", kicker: "06" },
 ];
 
 const GOALS = [
@@ -1288,8 +1288,11 @@ function render() {
   appRoot.innerHTML = `
     <div class="app-shell">
       ${renderHeader(stats)}
-      ${state.error ? renderErrorBanner(state.error) : ""}
-      ${state.loading ? renderLoading() : renderCurrentView(stats)}
+      <main class="view-shell">
+        ${state.error ? renderErrorBanner(state.error) : ""}
+        ${state.loading ? renderLoading() : renderCurrentView(stats)}
+      </main>
+      ${renderMobileDock()}
     </div>
     ${state.ui.toast ? `<div class="toast" role="status" aria-live="polite">${escapeHtml(state.ui.toast)}</div>` : ""}
   `;
@@ -1317,12 +1320,28 @@ function renderHeader(stats) {
         ${VIEW_OPTIONS.map(
           (option) => `
             <button class="nav-pill ${state.view === option.id ? "is-active" : ""}" data-action="set-view" data-view="${option.id}">
-              ${escapeHtml(option.label)}
+              <span class="nav-pill-kicker">${escapeHtml(option.kicker)}</span>
+              <span class="nav-pill-label">${escapeHtml(option.label)}</span>
             </button>
           `
         ).join("")}
       </nav>
     </header>
+  `;
+}
+
+function renderMobileDock() {
+  return `
+    <nav class="mobile-dock" aria-label="Accesos moviles">
+      ${VIEW_OPTIONS.map(
+        (option) => `
+          <button class="mobile-dock-pill ${state.view === option.id ? "is-active" : ""}" data-action="set-view" data-view="${option.id}">
+            <span class="mobile-dock-kicker">${escapeHtml(option.kicker)}</span>
+            <span class="mobile-dock-label">${escapeHtml(option.shortLabel)}</span>
+          </button>
+        `
+      ).join("")}
+    </nav>
   `;
 }
 
@@ -2091,34 +2110,36 @@ function renderProgressView(stats) {
           ${
             Object.keys(state.performanceBySlug).length
               ? `
-                <table class="performance-table">
-                  <thead>
-                    <tr>
-                      <th>Ejercicio</th>
-                      <th>Ultimo peso</th>
-                      <th>Mejor peso</th>
-                      <th>Reps</th>
-                      <th>Sesiones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${Object.values(state.performanceBySlug)
-                      .sort((left, right) => new Date(right.updatedAt) - new Date(left.updatedAt))
-                      .slice(0, 10)
-                      .map(
-                        (snapshot) => `
-                          <tr>
-                            <td>${escapeHtml(snapshot.exerciseSlug)}</td>
-                            <td>${formatWeight(Number(snapshot.lastWeightKg || 0))} kg</td>
-                            <td>${formatWeight(Number(snapshot.bestWeightKg || 0))} kg</td>
-                            <td>${snapshot.lastReps || 0}</td>
-                            <td>${snapshot.sessionsCount || 0}</td>
-                          </tr>
-                        `
-                      )
-                      .join("")}
-                  </tbody>
-                </table>
+                <div class="table-wrap">
+                  <table class="performance-table">
+                    <thead>
+                      <tr>
+                        <th>Ejercicio</th>
+                        <th>Ultimo peso</th>
+                        <th>Mejor peso</th>
+                        <th>Reps</th>
+                        <th>Sesiones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${Object.values(state.performanceBySlug)
+                        .sort((left, right) => new Date(right.updatedAt) - new Date(left.updatedAt))
+                        .slice(0, 10)
+                        .map(
+                          (snapshot) => `
+                            <tr>
+                              <td>${escapeHtml(snapshot.exerciseSlug)}</td>
+                              <td>${formatWeight(Number(snapshot.lastWeightKg || 0))} kg</td>
+                              <td>${formatWeight(Number(snapshot.bestWeightKg || 0))} kg</td>
+                              <td>${snapshot.lastReps || 0}</td>
+                              <td>${snapshot.sessionsCount || 0}</td>
+                            </tr>
+                          `
+                        )
+                        .join("")}
+                    </tbody>
+                  </table>
+                </div>
               `
               : renderEmptyState("Aun no hay snapshots de rendimiento.")
           }
