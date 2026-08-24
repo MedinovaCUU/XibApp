@@ -1298,12 +1298,22 @@ function render() {
   `;
 }
 
+function renderBrandMark() {
+  return `
+    <div class="brand-mark" aria-hidden="true">
+      <span class="brand-mark-core">
+        <img class="brand-mark-image" src="./assets/xibapp-logo-mark.png" alt="" />
+      </span>
+    </div>
+  `;
+}
+
 function renderHeader(stats) {
   return `
     <header class="masthead glass-panel">
       <div class="masthead-top">
         <div class="brand-line">
-          <div class="brand-mark">X</div>
+          ${renderBrandMark()}
           <div class="brand-copy">
             <p class="eyebrow">Browser Ready</p>
             <h1>XibApp Web</h1>
@@ -1362,7 +1372,7 @@ function renderLoading() {
     <section class="glass-panel boot-screen">
       <div>
         <div class="brand-lockup">
-          <div class="brand-mark">X</div>
+          ${renderBrandMark()}
           <div>
             <p class="eyebrow">Inicializando</p>
             <h1>XibApp Web</h1>

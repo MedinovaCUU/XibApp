@@ -78,12 +78,44 @@ struct HomeView: View {
         ObsidianGlassCard {
             HStack(spacing: 14) {
                 ZStack {
-                    Circle().fill(Brand.goldGlow.opacity(0.45))
-                    Text("X")
-                        .font(AppFont.oxaniumBold(26))
-                        .foregroundStyle(.white)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Brand.goldGlow.opacity(0.98),
+                                    Brand.magentaCTA.opacity(0.92),
+                                    Brand.jadeGlow.opacity(0.78)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .fill(
+                            LinearGradient(
+                                colors: [
+                                    Color(hex: "#F8F0E2"),
+                                    Color(hex: "#E6D7BA")
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .padding(5)
+
+                    Image("XibAppLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 28, height: 28)
+                        .shadow(color: .black.opacity(0.12), radius: 1, y: 1)
                 }
-                .frame(width: 52, height: 52)
+                .frame(width: 56, height: 56)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Brand.borderLight, lineWidth: 0.9)
+                )
+                .shadow(color: .black.opacity(0.22), radius: 14, y: 8)
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text("XibApp")
