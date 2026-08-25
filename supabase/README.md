@@ -3,6 +3,7 @@
 ## Migration file
 - `supabase/migrations/20260310_000001_xibapp_core_schema.sql`
 - `supabase/migrations/20260317_000002_exercise_technique_column.sql`
+- `supabase/migrations/20260825_000003_daily_motivation_phrases.sql`
 
 ## How to apply in project `gayjoopqsluogmphzmbp`
 1. Open Supabase dashboard for your project.
@@ -16,6 +17,7 @@
 - Exercises: `exercise_detail_v1`
 - Nutrition: `nutrition_recipes`, `nutrition_recipe_completions`, `nutrition_recipe_favorites`
 - Routines: `routines`, `routine_exercises`, `completed_workouts`
+- Daily motivation: `daily_motivation_phrases`
 - Helpers: triggers (`updated_at`) + functions (`reserve_event_spot`, `cancel_event_spot`)
 - RLS policies (development-friendly, permissive for user data)
 

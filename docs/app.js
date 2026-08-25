@@ -6,6 +6,8 @@ const STORAGE_KEYS = {
   completedRecipes: "xibapp.web.completedRecipes.v1",
   shoppingList: "xibapp.web.shoppingList.v1",
   challengeRegistrations: "xibapp.web.challengeRegistrations.v1",
+  motivationPhrasesCache: "xibapp.web.motivationPhrasesCache.v1",
+  viewerId: "xibapp.web.viewerId.v1",
 };
 
 const VIEW_OPTIONS = [
@@ -310,6 +312,19 @@ const MEAL_ORDER = [
   { key: "cena", label: "Cena" },
 ];
 
+const SUPABASE_PUBLIC_CONFIG = {
+  url: "https://gayjoopqsluogmphzmbp.supabase.co",
+  anonKey:
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdheWpvb3Bxc2x1b2dtcGh6bWJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMzkxNzMsImV4cCI6MjA4ODYxNTE3M30.GLYvRy7NESdgNSxtttFAYwnDfuYuM7pLUlIEpRCy88U",
+};
+
+const MOTIVATION_FALLBACK_PHRASES = [
+  "La disciplina aplasta al miedo.",
+  "No salgas igual que entras.",
+  "Hoy se entrena con hambre.",
+  "Haz que hoy cuente.",
+];
+
 const DEFAULT_PREFERENCES = {
   goal: "Ganar musculo",
   split: "Empuje/Jalon/Piernas",
@@ -358,6 +373,7 @@ const state = {
     families: [],
     recipes: [],
     challenges: buildChallengeSeed(),
+    motivationPhrases: loadStoredMotivationPhrases(),
   },
   preferences: loadStoredPreferences(),
   history: loadStoredHistory(),
@@ -373,10 +389,13 @@ const state = {
     exerciseQuery: "",
     recipeFilter: "all",
     selectedFamilyKey: null,
+    trainingScreen: "overview",
+    selectedTrainingExerciseId: null,
     toast: "",
   },
 };
 
+const localViewerId = loadViewerId();
 const appRoot = document.querySelector("#app");
 let toastTimer = null;
 let restTimerInterval = null;
@@ -402,9 +421,10 @@ async function loadData() {
   render();
 
   try {
-    const [exerciseResponse, recipeResponse] = await Promise.all([
+    const [exerciseResponse, recipeResponse, motivationPhrases] = await Promise.all([
       fetch("./data/exercise_detail_v1_seed.json"),
       fetch("./data/nutrition_recipes_mx.json"),
+      loadDailyMotivationPhrases(),
     ]);
 
     if (!exerciseResponse.ok || !recipeResponse.ok) {
@@ -420,6 +440,7 @@ async function loadData() {
     state.data.families = buildExerciseFamilies(state.data.exercises);
     state.data.recipes = recipeSeed.map(normalizeRecipe);
     state.data.challenges = buildChallengeSeed();
+    state.data.motivationPhrases = motivationPhrases;
     state.ui.selectedFamilyKey = state.ui.selectedFamilyKey || state.data.families[0]?.key || null;
     regeneratePlan();
   } catch (error) {
@@ -516,6 +537,7 @@ function buildExerciseFamilies(exercises) {
 function regeneratePlan() {
   if (!state.data.exercises.length) {
     state.plan = null;
+    syncTrainingScreenState();
     return;
   }
 
@@ -525,6 +547,7 @@ function regeneratePlan() {
     state.data.exercises,
     state.performanceBySlug
   );
+  syncTrainingScreenState();
 }
 
 function makePlan(preferences, history, catalog, performanceBySlug) {
@@ -879,6 +902,9 @@ function makeProgression(item, snapshot, repsText, goal, intensity, preferences,
   const roundingStep = suggestedWeightStep(item, weightUnit);
   const equipmentClass = inferEquipmentClass(item);
   const progressData = transferableProgressData(item, snapshot, equipmentProfile, baseline.suggestedWeightKg);
+  const snapshotSets = snapshotSetEntries(snapshot);
+  const setFeedback = evaluateRepPerformanceFromSets(snapshotSets, range);
+  const sessionSummary = snapshotSetSummary(item, snapshot, equipmentProfile);
 
   if (!snapshot) {
     return {
@@ -886,6 +912,7 @@ function makeProgression(item, snapshot, repsText, goal, intensity, preferences,
       note:
         baseline.note ||
         "Sin historial. Registra tus series para activar progresion automatica.",
+      sessionSummary: "",
     };
   }
 
@@ -905,29 +932,26 @@ function makeProgression(item, snapshot, repsText, goal, intensity, preferences,
       note: timeBasedWeight
         ? `Base ${formatWeightWithUnit(timeBasedWeight, weightUnit)}. Controla el ritmo.`
         : "Manten ritmo y tecnica; esta variante se guia por tiempo.",
+      sessionSummary,
     };
   }
 
   if (equipmentClass === "bodyweight" && !isWeightedVariation(item)) {
-    if (!range) {
-      return {
-        suggestedWeightKg: null,
-        note: "Movimiento libre. Mantiene ritmo y control.",
-      };
-    }
-
     return {
       suggestedWeightKg: null,
-      note:
-        Number(snapshot.lastReps || 0) >= range.max
-          ? `Cumpliste ${range.max} reps. Sube dificultad o agrega lastre ligero.`
+      note: setFeedback?.status === "increase"
+        ? "La variante actual ya te queda corta. Sube dificultad o agrega lastre ligero."
+        : setFeedback?.status === "evaluate"
+          ? "Mantengo la misma dificultad para confirmar la siguiente sesion."
           : `Busca ${range.min}-${range.max} reps con control corporal.`,
+      sessionSummary,
     };
   }
 
   const snapshotProfile = equipmentProfileFromSnapshot(snapshot, item);
-  const convertedSnapshotWeight = Number.isFinite(Number(snapshot.lastWeightKg))
-    ? convertStoredWeightKgToDisplayed(item, Number(snapshot.lastWeightKg), snapshotProfile, equipmentProfile)
+  const representativeWeightKg = representativeStoredWeightKgFromSets(snapshotSets, Number(snapshot.lastWeightKg || 0));
+  const convertedSnapshotWeight = Number.isFinite(representativeWeightKg) && representativeWeightKg > 0
+    ? convertStoredWeightKgToDisplayed(item, representativeWeightKg, snapshotProfile, equipmentProfile)
     : Number(baseline.suggestedWeightKg || 0);
   const lastWeight = Number(
     convertedSnapshotWeight ||
@@ -935,18 +959,38 @@ function makeProgression(item, snapshot, repsText, goal, intensity, preferences,
       baseline.suggestedWeightKg ||
       0
   );
-  const lastReps = Number(snapshot.lastReps || 0);
   const incrementStep = progressionIncrementStep(item, intensity, weightUnit);
   const strategyFactor = LOAD_STRATEGY_FACTORS[preferences.loadStrategy] || 1;
 
   let delta = 0;
-  if (lastReps >= range.max) {
-    if (goal === "Ganar fuerza" || goal === "Ganar musculo") delta = incrementStep * strategyFactor;
-    else if (goal === "Definir musculo") delta = incrementStep * 0.5 * strategyFactor;
-    else delta = incrementStep * 0.25 * strategyFactor;
-  } else if (lastReps < range.min) {
-    if (goal === "Ganar fuerza" || goal === "Ganar musculo") delta = -incrementStep * 0.5;
-    else delta = -incrementStep * 0.25;
+  let coachingNote = "";
+
+  if (setFeedback) {
+    if (setFeedback.status === "increase") {
+      const multiplier = setFeedback.best >= range.max + 5 ? 1.35 : 1;
+      if (goal === "Ganar fuerza" || goal === "Ganar musculo") delta = incrementStep * multiplier * strategyFactor;
+      else if (goal === "Definir musculo") delta = incrementStep * 0.65 * multiplier * strategyFactor;
+      else delta = incrementStep * 0.35 * multiplier * strategyFactor;
+      coachingNote = "La ultima sesion dejo margen real. Ajusto la sugerencia ligeramente hacia arriba.";
+    } else if (setFeedback.status === "decrease") {
+      delta = goal === "Ganar fuerza" || goal === "Ganar musculo" ? -incrementStep * 0.7 : -incrementStep * 0.45;
+      coachingNote = "La ultima sesion se vio pesada. Ajusto la sugerencia un poco a la baja.";
+    } else if (setFeedback.status === "evaluate") {
+      delta = 0;
+      coachingNote = "La ultima sesion aun no queda del todo consolidada. Mantengo la carga y sigo observando.";
+    } else {
+      coachingNote = "La carga sigue bien calibrada con tu ultimo patron de series.";
+    }
+  } else {
+    const lastReps = Number(snapshot.lastReps || 0);
+    if (lastReps >= range.max) {
+      if (goal === "Ganar fuerza" || goal === "Ganar musculo") delta = incrementStep * strategyFactor;
+      else if (goal === "Definir musculo") delta = incrementStep * 0.5 * strategyFactor;
+      else delta = incrementStep * 0.25 * strategyFactor;
+    } else if (lastReps < range.min) {
+      if (goal === "Ganar fuerza" || goal === "Ganar musculo") delta = -incrementStep * 0.5;
+      else delta = -incrementStep * 0.25;
+    }
   }
 
   let rawSuggested = Math.max(0, lastWeight + delta);
@@ -969,16 +1013,19 @@ function makeProgression(item, snapshot, repsText, goal, intensity, preferences,
   }
 
   const suggestedWeightKg = roundToNearest(rawSuggested, roundingStep);
-  const note =
+  const loadNote =
     delta > 0
-      ? `Sube a ${formatWeightWithUnit(suggestedWeightKg, weightUnit)}.`
+      ? `Prueba ${formatWeightWithUnit(suggestedWeightKg, weightUnit)}.`
       : delta < 0
-        ? `Baja a ${formatWeightWithUnit(suggestedWeightKg, weightUnit)} y prioriza tecnica.`
-        : `Manten ${formatWeightWithUnit(suggestedWeightKg, weightUnit)} para ${range.min}-${range.max} reps.`;
+        ? `Bajo a ${formatWeightWithUnit(suggestedWeightKg, weightUnit)} por ahora.`
+        : setFeedback?.status === "evaluate"
+          ? `Mantengo ${formatWeightWithUnit(suggestedWeightKg, weightUnit)} para volver a leer la siguiente sesion.`
+          : `Mantengo ${formatWeightWithUnit(suggestedWeightKg, weightUnit)}.`;
 
   return {
     suggestedWeightKg,
-    note: [note, baseline.machineAdjustmentLabel, progressData.label].filter(Boolean).join(" • "),
+    note: [coachingNote, loadNote, baseline.machineAdjustmentLabel, progressData.label].filter(Boolean).join(" • "),
+    sessionSummary,
   };
 }
 
@@ -1258,12 +1305,28 @@ function updateEquipmentProfileForExercise(exerciseId, patch) {
     ...patch,
   }, state.preferences.weightUnit);
 
-  const weightInput = state.planInputs[exerciseId]?.weight;
-  if (weightInput !== undefined && weightInput !== "") {
-    const numericWeight = Number(weightInput);
-    if (Number.isFinite(numericWeight)) {
+  const inputState = state.planInputs[exerciseId];
+  if (Array.isArray(inputState?.sets)) {
+    inputState.sets = inputState.sets.map((set) => {
+      const numericWeight = Number(set?.weight);
+      if (!Number.isFinite(numericWeight) || numericWeight <= 0) {
+        return { ...set };
+      }
+
       const converted = convertDisplayedLoad(item, numericWeight, currentProfile, nextProfile);
-      state.planInputs[exerciseId].weight = formatEditableWeight(converted);
+      return {
+        ...set,
+        weight: formatEditableWeight(converted),
+      };
+    });
+  } else {
+    const weightInput = inputState?.weight;
+    if (weightInput !== undefined && weightInput !== "") {
+      const numericWeight = Number(weightInput);
+      if (Number.isFinite(numericWeight)) {
+        const converted = convertDisplayedLoad(item, numericWeight, currentProfile, nextProfile);
+        state.planInputs[exerciseId].weight = formatEditableWeight(converted);
+      }
     }
   }
 
@@ -1374,11 +1437,24 @@ function transferableProgressData(item, snapshot, currentProfile, baselineSugges
   }
 
   const snapshotProfile = equipmentProfileFromSnapshot(snapshot, item);
-  const fallbackLastReference = referenceLoadFromStoredWeightKg(item, Number(snapshot.lastWeightKg || 0), snapshotProfile);
-  const fallbackBestReference = referenceLoadFromStoredWeightKg(
-    item,
-    Math.max(Number(snapshot.bestWeightKg || 0), Number(snapshot.lastWeightKg || 0)),
-    snapshotProfile
+  const snapshotSets = snapshotSetEntries(snapshot);
+  const snapshotReferenceLoads = snapshotSets
+    .map((set) => Number(set.referenceLoadKg || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  const fallbackLastReference =
+    snapshotReferenceLoads[0] ||
+    referenceLoadFromStoredWeightKg(
+      item,
+      representativeStoredWeightKgFromSets(snapshotSets, Number(snapshot.lastWeightKg || 0)),
+      snapshotProfile
+    );
+  const fallbackBestReference = Math.max(
+    ...snapshotReferenceLoads,
+    referenceLoadFromStoredWeightKg(
+      item,
+      Math.max(Number(snapshot.bestWeightKg || 0), representativeStoredWeightKgFromSets(snapshotSets, Number(snapshot.lastWeightKg || 0))),
+      snapshotProfile
+    )
   );
   const firstReference = Number(snapshot.firstReferenceWeightKg || 0);
   const peakReference = Math.max(
@@ -1416,7 +1492,7 @@ function transferableProgressData(item, snapshot, currentProfile, baselineSugges
     snapshotProfile.brandId !== currentProfile.brandId || snapshotProfile.loadMode !== currentProfile.loadMode;
   const label =
     profileChanged && factor > 1.02
-      ? `transferencia x${factor.toFixed(2)}`
+      ? "ajustada con tu historial en otra maquina"
       : "";
 
   return {
@@ -1441,6 +1517,222 @@ function unitOverrideLabel(unitOverride) {
   return normalizeWeightUnit(unitOverride);
 }
 
+function snapshotSetEntries(snapshot) {
+  const rawSets = Array.isArray(snapshot?.lastSets) ? snapshot.lastSets : [];
+  const normalizedSets = rawSets
+    .map((set, index) => ({
+      index,
+      reps: Number(set?.reps || 0),
+      weightKg: Number(set?.weightKg || 0),
+      referenceLoadKg: Number(set?.referenceLoadKg || 0),
+    }))
+    .filter((set) => set.reps > 0 || set.weightKg > 0 || set.referenceLoadKg > 0);
+
+  if (normalizedSets.length) {
+    return normalizedSets;
+  }
+
+  const legacyReps = Number(snapshot?.lastReps || 0);
+  const legacyWeightKg = Number(snapshot?.lastWeightKg || 0);
+  const legacyReferenceLoadKg = Number(snapshot?.lastReferenceWeightKg || 0);
+  if (legacyReps > 0 || legacyWeightKg > 0 || legacyReferenceLoadKg > 0) {
+    return [
+      {
+        index: 0,
+        reps: legacyReps,
+        weightKg: legacyWeightKg,
+        referenceLoadKg: legacyReferenceLoadKg,
+      },
+    ];
+  }
+
+  return [];
+}
+
+function planSetRepSignature(sets) {
+  const reps = sets
+    .map((set) => Number(set?.reps || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+  return reps.length ? reps.join(" / ") : "";
+}
+
+function representativeStoredWeightKgFromSets(sets, fallbackWeightKg = 0) {
+  const weights = sets
+    .map((set) => Number(set?.weightKg || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  if (weights.length) {
+    return weights[0];
+  }
+
+  return Number(fallbackWeightKg || 0);
+}
+
+function evaluateRepPerformanceFromSets(sets, range) {
+  if (!range) {
+    return null;
+  }
+
+  const reps = sets
+    .map((set) => Number(set?.reps || 0))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  if (!reps.length) {
+    return null;
+  }
+
+  const first = reps[0];
+  const last = reps[reps.length - 1];
+  const best = Math.max(...reps);
+  const average = reps.reduce((sum, value) => sum + value, 0) / reps.length;
+  const belowMinCount = reps.filter((value) => value < range.min).length;
+  const aboveMaxCount = reps.filter((value) => value > range.max).length;
+  const drop = first - last;
+  const signature = reps.join(" / ");
+  const steepDrop = reps.length >= 3 && first >= range.min && last < range.min && drop >= 2;
+
+  if (best >= range.max + 3 || average >= range.max + 1.5 || aboveMaxCount >= Math.ceil(reps.length / 2)) {
+    return {
+      status: "increase",
+      label: "Subir carga",
+      signature,
+      first,
+      last,
+      best,
+      average,
+      setCount: reps.length,
+      note: `Ultima sesion ${signature}. Te sobraron reps frente al objetivo ${range.min}-${range.max}.`,
+    };
+  }
+
+  if (steepDrop || belowMinCount >= Math.ceil(reps.length / 2)) {
+    if (first < range.min && belowMinCount >= Math.ceil(reps.length * 0.67)) {
+      return {
+        status: "decrease",
+        label: "Bajar carga",
+        signature,
+        first,
+        last,
+        best,
+        average,
+        setCount: reps.length,
+        note: `Ultima sesion ${signature}. La mayoria de series quedo debajo del rango ${range.min}-${range.max}.`,
+      };
+    }
+
+    return {
+      status: "evaluate",
+      label: "Evaluar carga",
+      signature,
+      first,
+      last,
+      best,
+      average,
+      setCount: reps.length,
+      note: `Ultima sesion ${signature}. Abriste en rango, pero la caida indica que ese peso sigue en evaluacion.`,
+    };
+  }
+
+  return {
+    status: "hold",
+    label: "Mantener",
+    signature,
+    first,
+    last,
+    best,
+    average,
+    setCount: reps.length,
+    note: `Ultima sesion ${signature}. Manten el peso hasta dominar ${range.min}-${range.max} en todas las series.`,
+  };
+}
+
+function snapshotSetSummary(item, snapshot, currentProfile) {
+  const sets = snapshotSetEntries(snapshot);
+  if (!sets.length) {
+    return "";
+  }
+
+  const repsSignature = planSetRepSignature(sets);
+  const snapshotProfile = equipmentProfileFromSnapshot(snapshot, item);
+  const representativeWeightKg = representativeStoredWeightKgFromSets(sets, Number(snapshot?.lastWeightKg || 0));
+  const displayedWeight =
+    representativeWeightKg > 0
+      ? convertStoredWeightKgToDisplayed(item, representativeWeightKg, snapshotProfile, currentProfile)
+      : 0;
+
+  return [
+    repsSignature ? `${repsSignature} reps` : "",
+    displayedWeight > 0 ? formatWeightWithUnit(displayedWeight, currentProfile.weightUnit) : "",
+  ]
+    .filter(Boolean)
+    .join(" • ");
+}
+
+function defaultPlanSetReps(entry, snapshot) {
+  const range = parseRepRange(entry.repsText);
+  if (range) {
+    return String(range.max);
+  }
+
+  const previousSetReps = snapshotSetEntries(snapshot)[0]?.reps;
+  return previousSetReps > 0 ? String(previousSetReps) : "";
+}
+
+function defaultPlanSetWeight(entry, resolvedExercise, snapshot) {
+  const equipmentProfile = resolvedExercise.equipmentProfile;
+  const previousProfile = equipmentProfileFromSnapshot(snapshot, entry.exercise);
+  const representativeWeightKg = representativeStoredWeightKgFromSets(
+    snapshotSetEntries(snapshot),
+    Number(snapshot?.lastWeightKg || 0)
+  );
+  const displayedWeight =
+    resolvedExercise.suggestedWeightKg ??
+    (representativeWeightKg > 0
+      ? convertStoredWeightKgToDisplayed(entry.exercise, representativeWeightKg, previousProfile, equipmentProfile)
+      : 0);
+
+  return Number.isFinite(displayedWeight) && displayedWeight > 0 ? formatEditableWeight(displayedWeight) : "";
+}
+
+function planSetCountForEntry(entry) {
+  const inputSets = state.planInputs[entry.id]?.sets;
+  const storedCount = Array.isArray(inputSets) ? inputSets.length : 0;
+  return Math.max(1, entry.sets, storedCount);
+}
+
+function buildPlanSetRows(entry, resolvedExercise, snapshot = performanceSnapshotForItem(entry.exercise, state.performanceBySlug)) {
+  const inputSets = Array.isArray(state.planInputs[entry.id]?.sets) ? state.planInputs[entry.id].sets : [];
+  const defaultReps = defaultPlanSetReps(entry, snapshot);
+  const defaultWeight = defaultPlanSetWeight(entry, resolvedExercise, snapshot);
+
+  return Array.from({ length: planSetCountForEntry(entry) }, (_, index) => {
+    const setInput = inputSets[index] || {};
+    return {
+      index,
+      reps: setInput.reps ?? defaultReps,
+      weight: setInput.weight ?? defaultWeight,
+    };
+  });
+}
+
+function ensurePlanSetInputs(exerciseId, entry = findPlanExerciseById(exerciseId), resolvedExercise = entry ? resolvePlanExercise(entry) : null) {
+  if (!entry || !resolvedExercise) {
+    return [];
+  }
+
+  const rows = buildPlanSetRows(entry, resolvedExercise);
+  const currentInput = state.planInputs[exerciseId] || {};
+  state.planInputs[exerciseId] = {
+    ...currentInput,
+    sets: rows.map((row) => ({
+      reps: row.reps ?? "",
+      weight: row.weight ?? "",
+    })),
+  };
+
+  return state.planInputs[exerciseId].sets;
+}
+
 function bodyWeightDisplayValue() {
   return displayedWeightFromStoredKg(state.preferences.bodyWeightKg, state.preferences.weightUnit);
 }
@@ -1453,7 +1745,29 @@ function bodyWeightInputBounds(unit) {
 }
 
 function convertPlanInputWeightForProfiles(exerciseId, fromProfile, toProfile) {
-  const rawWeight = state.planInputs[exerciseId]?.weight;
+  const inputState = state.planInputs[exerciseId];
+  if (!inputState) {
+    return;
+  }
+
+  if (Array.isArray(inputState.sets)) {
+    inputState.sets = inputState.sets.map((set) => {
+      const numericWeight = Number(set?.weight);
+      if (!Number.isFinite(numericWeight) || numericWeight <= 0) {
+        return { ...set };
+      }
+
+      return {
+        ...set,
+        weight: formatEditableWeight(
+          convertDisplayedLoad(findPlanExerciseById(exerciseId)?.exercise || { equipment: [] }, numericWeight, fromProfile, toProfile)
+        ),
+      };
+    });
+    return;
+  }
+
+  const rawWeight = inputState.weight;
   if (rawWeight === undefined || rawWeight === "") {
     return;
   }
@@ -1463,7 +1777,7 @@ function convertPlanInputWeightForProfiles(exerciseId, fromProfile, toProfile) {
     return;
   }
 
-  state.planInputs[exerciseId].weight = formatEditableWeight(
+  inputState.weight = formatEditableWeight(
     convertDisplayedLoad(findPlanExerciseById(exerciseId)?.exercise || { equipment: [] }, numericWeight, fromProfile, toProfile)
   );
 }
@@ -1487,9 +1801,10 @@ function resolvePlanExercise(entry) {
   const equipmentProfile = exerciseEquipmentProfile(entry.exercise);
   const weightUnit = resolvedExerciseWeightUnit(entry.exercise, equipmentProfile);
   const intensity = inferIntensity(entry.exercise);
+  const snapshot = performanceSnapshotForItem(entry.exercise, state.performanceBySlug);
   const progression = makeProgression(
     entry.exercise,
-    performanceSnapshotForItem(entry.exercise, state.performanceBySlug),
+    snapshot,
     entry.repsText,
     state.preferences.goal,
     intensity,
@@ -1501,8 +1816,10 @@ function resolvePlanExercise(entry) {
     ...entry,
     equipmentProfile,
     weightUnit,
+    performanceSnapshot: snapshot,
     suggestedWeightKg: progression.suggestedWeightKg,
     progressionNote: progression.note,
+    sessionSummary: progression.sessionSummary,
   };
 }
 
@@ -1556,15 +1873,13 @@ function estimateBaselineLoad(item, preferences, repsText, goal, intensity, equi
   );
   const machineAdjustmentLabel =
     machineBrandFactor(item, equipmentProfile) !== 1 && isMachineAdjustable(item)
-      ? `${brand.label} ${signedPercent((machineBrandFactor(item, equipmentProfile) - 1) * 100)}`
+      ? `adaptada a ${brand.label}`
       : "";
-  const profileWeightDisplay = displayedWeightFromStoredKg(bodyWeightKg, state.preferences.weightUnit);
 
   return {
     suggestedWeightKg,
     note: [
-      `Base ${formatWeightWithUnit(suggestedWeightKg, weightUnit)}`,
-      `${formatWeightWithUnit(profileWeightDisplay, state.preferences.weightUnit)} corporal`,
+      `Arranco esta variante en ${formatWeightWithUnit(suggestedWeightKg, weightUnit)}.`,
       machineAdjustmentLabel,
     ]
       .filter(Boolean)
@@ -1761,6 +2076,30 @@ function rationale(preferences, focus, durationMinutes, fatigue) {
   return [focus, `${durationMinutes} min`, `fatiga ${fatigueLabel(fatigue)}`].filter(Boolean).join(" • ");
 }
 
+function buildCompletedPlanSets(entry, resolvedExercise, previousSnapshot) {
+  const equipmentProfile = resolvedExercise.equipmentProfile;
+  const rows = buildPlanSetRows(entry, resolvedExercise, previousSnapshot);
+
+  return rows
+    .map((row) => {
+      const reps = Number(row.reps);
+      const displayedWeight = Number(row.weight);
+      const weightKg =
+        Number.isFinite(displayedWeight) && displayedWeight > 0
+          ? storedWeightKgFromDisplayed(displayedWeight, equipmentProfile.weightUnit)
+          : 0;
+      const referenceLoadKg =
+        weightKg > 0 ? referenceLoadFromStoredWeightKg(entry.exercise, weightKg, equipmentProfile) : 0;
+
+      return {
+        reps: Number.isFinite(reps) && reps > 0 ? reps : 0,
+        weightKg,
+        referenceLoadKg,
+      };
+    })
+    .filter((set) => set.reps > 0 || set.weightKg > 0);
+}
+
 function completeCurrentPlan() {
   if (!state.plan) {
     return;
@@ -1806,30 +2145,37 @@ function completeCurrentPlan() {
       const parsedRange = parseRepRange(exercise.repsText);
       const defaultReps = parsedRange ? parsedRange.max : Number(previous.lastReps || 0);
       const previousProfile = equipmentProfileFromSnapshot(previous, exercise.exercise);
-      const displayedWeight =
-        input.weight === "" || input.weight === undefined
-          ? Number(
-              resolvedExercise.suggestedWeightKg ??
-                convertStoredWeightKgToDisplayed(
-                  exercise.exercise,
-                  Number(previous.lastWeightKg || 0),
-                  previousProfile,
-                  equipmentProfile
-                ) ??
-                0
-            )
-          : Number(input.weight);
-      const weight =
-        Number.isFinite(displayedWeight)
-          ? storedWeightKgFromDisplayed(displayedWeight, equipmentProfile.weightUnit)
+      const completedSets = buildCompletedPlanSets(exercise, resolvedExercise, previous);
+      const fallbackDisplayedWeight = Number(
+        resolvedExercise.suggestedWeightKg ??
+          convertStoredWeightKgToDisplayed(
+            exercise.exercise,
+            Number(previous.lastWeightKg || 0),
+            previousProfile,
+            equipmentProfile
+          ) ??
+          0
+      );
+      const fallbackWeightKg =
+        Number.isFinite(fallbackDisplayedWeight) && fallbackDisplayedWeight > 0
+          ? storedWeightKgFromDisplayed(fallbackDisplayedWeight, equipmentProfile.weightUnit)
           : Number(previous.lastWeightKg || 0);
-      const reps =
-        input.reps === "" || input.reps === undefined
-          ? Number(defaultReps || 0)
-          : Number(input.reps);
-      const normalizedWeight = Number.isFinite(weight)
-        ? referenceLoadFromStoredWeightKg(exercise.exercise, weight, equipmentProfile)
-        : Number(previous.lastReferenceWeightKg || 0);
+      const representativeWeightKg = representativeStoredWeightKgFromSets(completedSets, fallbackWeightKg);
+      const representativeReps =
+        completedSets[0]?.reps ||
+        (input.reps === "" || input.reps === undefined ? Number(defaultReps || 0) : Number(input.reps));
+      const normalizedWeight =
+        representativeWeightKg > 0
+          ? referenceLoadFromStoredWeightKg(exercise.exercise, representativeWeightKg, equipmentProfile)
+          : Number(previous.lastReferenceWeightKg || 0);
+      const bestSessionWeightKg = Math.max(
+        0,
+        ...completedSets.map((set) => Number(set.weightKg || 0)).filter((value) => Number.isFinite(value))
+      );
+      const bestSessionReferenceKg = Math.max(
+        0,
+        ...completedSets.map((set) => Number(set.referenceLoadKg || 0)).filter((value) => Number.isFinite(value))
+      );
       const firstReferenceWeightKg =
         Number(previous.firstReferenceWeightKg || 0) > 0
           ? Number(previous.firstReferenceWeightKg)
@@ -1837,13 +2183,14 @@ function completeCurrentPlan() {
 
       state.performanceBySlug[snapshotKey] = {
         ...previous,
-        lastWeightKg: Number.isFinite(weight) ? weight : previous.lastWeightKg,
-        bestWeightKg: Math.max(previous.bestWeightKg || 0, Number.isFinite(weight) ? weight : 0),
-        lastReps: Number.isFinite(reps) ? reps : previous.lastReps,
+        lastWeightKg: representativeWeightKg > 0 ? representativeWeightKg : previous.lastWeightKg,
+        bestWeightKg: Math.max(previous.bestWeightKg || 0, bestSessionWeightKg),
+        lastReps: Number.isFinite(representativeReps) ? representativeReps : previous.lastReps,
+        lastSets: completedSets,
         sessionsCount: Number(previous.sessionsCount || 0) + 1,
         firstReferenceWeightKg,
         lastReferenceWeightKg: normalizedWeight,
-        bestReferenceWeightKg: Math.max(Number(previous.bestReferenceWeightKg || 0), normalizedWeight),
+        bestReferenceWeightKg: Math.max(Number(previous.bestReferenceWeightKg || 0), normalizedWeight, bestSessionReferenceKg),
         machineBrandId: equipmentProfile.brandId,
         machineLabel: equipmentProfile.label,
         loadMode: equipmentProfile.loadMode,
@@ -1930,6 +2277,129 @@ function loadStoredObject(key) {
   }
 }
 
+function loadStoredMotivationPhrases() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.motivationPhrasesCache);
+    if (!raw) {
+      return [...MOTIVATION_FALLBACK_PHRASES];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [...MOTIVATION_FALLBACK_PHRASES];
+    }
+
+    const phrases = parsed
+      .map((value) => String(value || "").trim())
+      .filter(Boolean);
+
+    return phrases.length ? phrases : [...MOTIVATION_FALLBACK_PHRASES];
+  } catch {
+    return [...MOTIVATION_FALLBACK_PHRASES];
+  }
+}
+
+function persistMotivationPhrases(phrases) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.motivationPhrasesCache, JSON.stringify(phrases));
+  } catch {
+    // Ignore cache write issues and keep the runtime copy only.
+  }
+}
+
+async function fetchMotivationPhrasesFromSupabase() {
+  const response = await fetch(
+    `${SUPABASE_PUBLIC_CONFIG.url}/rest/v1/daily_motivation_phrases?select=phrase,sort_order&is_active=eq.true&order=sort_order.asc,id.asc`,
+    {
+      headers: {
+        apikey: SUPABASE_PUBLIC_CONFIG.anonKey,
+        Authorization: `Bearer ${SUPABASE_PUBLIC_CONFIG.anonKey}`,
+        Accept: "application/json",
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Supabase motivation fetch failed: ${response.status}`);
+  }
+
+  const rows = await response.json();
+  if (!Array.isArray(rows)) {
+    return [];
+  }
+
+  return rows
+    .map((row) => String(row?.phrase || "").trim())
+    .filter(Boolean);
+}
+
+async function loadDailyMotivationPhrases() {
+  const cachedPhrases = state.data.motivationPhrases?.length
+    ? [...state.data.motivationPhrases]
+    : loadStoredMotivationPhrases();
+
+  try {
+    const remotePhrases = await fetchMotivationPhrasesFromSupabase();
+    if (remotePhrases.length) {
+      persistMotivationPhrases(remotePhrases);
+      return remotePhrases;
+    }
+  } catch {
+    // Keep cache/fallback silently; the homepage still needs a phrase.
+  }
+
+  return cachedPhrases.length ? cachedPhrases : [...MOTIVATION_FALLBACK_PHRASES];
+}
+
+function loadViewerId() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.viewerId);
+    if (stored) {
+      return stored;
+    }
+
+    const generated = globalThis.crypto?.randomUUID?.() || uid("viewer");
+    localStorage.setItem(STORAGE_KEYS.viewerId, generated);
+    return generated;
+  } catch {
+    return uid("viewer");
+  }
+}
+
+function positiveModulo(value, divisor) {
+  return ((value % divisor) + divisor) % divisor;
+}
+
+function stableHash(value) {
+  let hash = 0;
+  const source = String(value || "");
+  for (let index = 0; index < source.length; index += 1) {
+    hash = (hash * 31 + source.charCodeAt(index)) | 0;
+  }
+  return hash;
+}
+
+function localDayNumber(date = new Date()) {
+  return Math.floor(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86400000);
+}
+
+function dailyMotivationPhrase(viewerId = localViewerId, date = new Date(), phrases = state.data.motivationPhrases) {
+  const sourcePhrases = Array.isArray(phrases) && phrases.length ? phrases : MOTIVATION_FALLBACK_PHRASES;
+
+  if (!sourcePhrases.length) {
+    return "Haz que hoy cuente.";
+  }
+
+  if (sourcePhrases.length === 1) {
+    return sourcePhrases[0];
+  }
+
+  const baseIndex = positiveModulo(stableHash(`${viewerId}:base`), sourcePhrases.length);
+  const dailyStep = positiveModulo(stableHash(`${viewerId}:step`), sourcePhrases.length - 1) + 1;
+  const phraseIndex = positiveModulo(baseIndex + localDayNumber(date) * dailyStep, sourcePhrases.length);
+  return sourcePhrases[phraseIndex];
+}
+
 function buildIdleRestTimer() {
   return {
     active: false,
@@ -1949,6 +2419,83 @@ function findPlanExerciseById(exerciseId) {
     }
   }
   return null;
+}
+
+function syncTrainingScreenState() {
+  const validScreens = new Set(["overview", "preferences", "exercise"]);
+  if (!validScreens.has(state.ui.trainingScreen)) {
+    state.ui.trainingScreen = "overview";
+  }
+
+  if (!state.plan?.blocks?.length) {
+    state.ui.selectedTrainingExerciseId = null;
+    if (state.ui.trainingScreen === "exercise") {
+      state.ui.trainingScreen = "overview";
+    }
+    return;
+  }
+
+  if (state.ui.trainingScreen === "exercise" && !findPlanExerciseById(state.ui.selectedTrainingExerciseId || "")) {
+    state.ui.trainingScreen = "overview";
+    state.ui.selectedTrainingExerciseId = null;
+  }
+}
+
+function scrollTrainingScreenToTop() {
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: "auto",
+  });
+}
+
+function openTrainingOverview() {
+  if (state.view === "training") {
+    runViewTransition(() => {
+      state.ui.trainingScreen = "overview";
+      state.ui.selectedTrainingExerciseId = null;
+      render();
+      scrollTrainingScreenToTop();
+    });
+    return;
+  }
+  state.ui.trainingScreen = "overview";
+  state.ui.selectedTrainingExerciseId = null;
+  navigateToView("training");
+}
+
+function openTrainingPreferences() {
+  if (state.view === "training") {
+    runViewTransition(() => {
+      state.ui.trainingScreen = "preferences";
+      state.ui.selectedTrainingExerciseId = null;
+      render();
+      scrollTrainingScreenToTop();
+    });
+    return;
+  }
+  state.ui.trainingScreen = "preferences";
+  state.ui.selectedTrainingExerciseId = null;
+  navigateToView("training");
+}
+
+function openTrainingExercise(exerciseId) {
+  if (!findPlanExerciseById(exerciseId)) {
+    return;
+  }
+
+  if (state.view === "training") {
+    runViewTransition(() => {
+      state.ui.trainingScreen = "exercise";
+      state.ui.selectedTrainingExerciseId = exerciseId;
+      render();
+      scrollTrainingScreenToTop();
+    });
+    return;
+  }
+  state.ui.trainingScreen = "exercise";
+  state.ui.selectedTrainingExerciseId = exerciseId;
+  navigateToView("training");
 }
 
 function startRestTimer(seconds, exerciseId, exerciseName) {
@@ -2047,6 +2594,14 @@ function handleClick(event) {
   const { action } = target.dataset;
 
   if (action === "set-view") {
+    if (target.dataset.view === "training") {
+      if (state.view === "training") {
+        openTrainingOverview();
+        return;
+      }
+      state.ui.trainingScreen = "overview";
+      state.ui.selectedTrainingExerciseId = null;
+    }
     navigateToView(target.dataset.view);
     return;
   }
@@ -2057,7 +2612,26 @@ function handleClick(event) {
   }
 
   if (action === "jump-training") {
+    state.ui.trainingScreen = "preferences";
+    state.ui.selectedTrainingExerciseId = null;
     navigateToView("training");
+    return;
+  }
+
+  if (action === "open-training-overview" || action === "back-training-overview") {
+    openTrainingOverview();
+    return;
+  }
+
+  if (action === "open-training-preferences") {
+    openTrainingPreferences();
+    return;
+  }
+
+  if (action === "open-training-exercise") {
+    const exerciseId = target.dataset.exerciseId;
+    if (!exerciseId) return;
+    openTrainingExercise(exerciseId);
     return;
   }
 
@@ -2089,15 +2663,34 @@ function handleClick(event) {
     return;
   }
 
-  if (action === "apply-suggested-load") {
+  if (action === "add-plan-set") {
     const exerciseId = target.dataset.exerciseId;
     if (!exerciseId) return;
     const entry = findPlanExerciseById(exerciseId);
     if (!entry) return;
     const resolvedEntry = resolvePlanExercise(entry);
-    if (resolvedEntry.suggestedWeightKg == null) return;
-    state.planInputs[exerciseId] = state.planInputs[exerciseId] || {};
-    state.planInputs[exerciseId].weight = formatEditableWeight(resolvedEntry.suggestedWeightKg);
+    const nextSets = ensurePlanSetInputs(exerciseId, entry, resolvedEntry);
+    const fallbackReps = defaultPlanSetReps(entry, resolvedEntry.performanceSnapshot);
+    const fallbackWeight = defaultPlanSetWeight(entry, resolvedEntry, resolvedEntry.performanceSnapshot);
+    const lastSet = nextSets[nextSets.length - 1] || { reps: fallbackReps, weight: fallbackWeight };
+    state.planInputs[exerciseId].sets.push({
+      reps: lastSet.reps || fallbackReps,
+      weight: lastSet.weight || fallbackWeight,
+    });
+    render();
+    return;
+  }
+
+  if (action === "remove-plan-set") {
+    const exerciseId = target.dataset.exerciseId;
+    if (!exerciseId) return;
+    const entry = findPlanExerciseById(exerciseId);
+    if (!entry) return;
+    const currentSets = ensurePlanSetInputs(exerciseId, entry, resolvePlanExercise(entry));
+    if (currentSets.length <= Math.max(1, entry.sets)) {
+      return;
+    }
+    currentSets.pop();
     render();
     return;
   }
@@ -2336,6 +2929,21 @@ function handleInput(event) {
   if (target.matches("[data-ui='exerciseQuery']")) {
     state.ui.exerciseQuery = target.value;
     render();
+    return;
+  }
+
+  if (target.matches("[data-plan-set-field]")) {
+    const exerciseId = target.dataset.exerciseId;
+    const field = target.dataset.planSetField;
+    const setIndex = Number(target.dataset.setIndex);
+    if (!exerciseId || !field || !Number.isInteger(setIndex) || setIndex < 0) return;
+    const entry = findPlanExerciseById(exerciseId);
+    if (!entry) return;
+    ensurePlanSetInputs(exerciseId, entry, resolvePlanExercise(entry));
+    state.planInputs[exerciseId].sets[setIndex] = {
+      ...(state.planInputs[exerciseId].sets[setIndex] || { reps: "", weight: "" }),
+      [field]: target.value,
+    };
     return;
   }
 
@@ -2629,8 +3237,10 @@ function renderViewIcon(viewId) {
 }
 
 function renderHeader(stats) {
+  const isDashboardHeader = state.view === "dashboard";
+
   return `
-    <header class="masthead glass-panel">
+    <header class="masthead glass-panel ${isDashboardHeader ? "is-compact" : ""}">
       <div class="masthead-top">
         <div class="brand-line">
           ${renderBrandMark()}
@@ -2638,11 +3248,17 @@ function renderHeader(stats) {
             <h1>XibApp</h1>
           </div>
         </div>
-        <div class="status-cluster">
-          <span class="status-pill"><span class="status-dot"></span>${state.data.exercises.length || 0} ejercicios</span>
-          <span class="status-pill">${state.data.recipes.length || 0} recetas activas</span>
-          <span class="status-pill">${stats.totalSessions} sesiones guardadas</span>
-        </div>
+        ${
+          isDashboardHeader
+            ? ""
+            : `
+              <div class="status-cluster">
+                <span class="status-pill"><span class="status-dot"></span>${state.data.exercises.length || 0} ejercicios</span>
+                <span class="status-pill">${state.data.recipes.length || 0} recetas activas</span>
+                <span class="status-pill">${stats.totalSessions} sesiones guardadas</span>
+              </div>
+            `
+        }
       </div>
       <nav class="nav-strip" aria-label="Navegacion principal">
         ${VIEW_OPTIONS.map(
@@ -2766,264 +3382,587 @@ function renderCurrentView(stats) {
   }
 }
 
-function renderDashboardView(stats) {
+function dashboardChallengeHighlight(stats) {
+  return (
+    stats.registeredChallengeItems[0] ||
+    state.data.challenges.find((challenge) => challenge.isFeatured) ||
+    state.data.challenges[0] ||
+    null
+  );
+}
+
+function renderDashboardExercisePreview(context) {
   return `
-    <section class="section-stack">
-      <div class="hero-grid">
-        <article class="glass-panel hero-copy">
-          <h1>Todo listo para hoy.</h1>
+    <button
+      class="dashboard-session-item"
+      data-action="open-training-exercise"
+      data-exercise-id="${context.entry.id}"
+      aria-label="Abrir ${escapeAttribute(context.entry.exercise.displayName)}"
+    >
+      <span class="dashboard-session-order">${String(context.absoluteIndex + 1).padStart(2, "0")}</span>
+      <span class="dashboard-session-copy">
+        <strong>${escapeHtml(context.entry.exercise.displayName)}</strong>
+        <span class="dashboard-session-meta">${escapeHtml(trainingExerciseSummary(context))}</span>
+      </span>
+      <span class="dashboard-session-tag">${escapeHtml(trainingEquipmentLabel(context.entry.exercise))}</span>
+    </button>
+  `;
+}
+
+function renderDashboardView(stats) {
+  const motivationPhrase = dailyMotivationPhrase();
+  const trainingContexts = buildTrainingExerciseContexts();
+  const leadContext = trainingContexts[0] || null;
+  const previewContexts = trainingContexts.slice(0, 4);
+  const remainingExerciseCount = Math.max(0, trainingContexts.length - previewContexts.length);
+  const challengeHighlight = dashboardChallengeHighlight(stats);
+  const calorieTarget = GOAL_MACRO_TARGETS[state.preferences.goal]?.calories || 0;
+  const calorieProgress = calorieTarget > 0 ? Math.min(100, Math.round((stats.macros.calories / calorieTarget) * 100)) : 0;
+  const todayTitle = trainingDayLabel(state.plan?.focus || "");
+
+  return `
+    <section class="section-stack dashboard-home">
+      <div class="hero-grid dashboard-hero-grid">
+        <article class="glass-panel hero-copy hero-mantra dashboard-mantra-card">
+          <p class="eyebrow">Mantra del dia</p>
+          <h1>${escapeHtml(motivationPhrase)}</h1>
+          <div class="meta-strip">
+            <span class="chip is-jade">${escapeHtml(state.preferences.goal)}</span>
+            <span class="chip">${escapeHtml(state.preferences.split)}</span>
+            <span class="chip is-gold">${state.plan?.estimatedMinutes || state.preferences.sessionDurationMinutes} min</span>
+          </div>
         </article>
-        <aside class="summary-card hero-note">
+        <aside class="summary-card hero-note dashboard-today-card">
           <div class="panel-title">
-            <h3>Estado de hoy</h3>
+            <h3>Hoy</h3>
             <span class="chip is-jade">${escapeHtml(state.plan?.focus || "Sin plan")}</span>
           </div>
-          <p>${escapeHtml(state.plan?.rationale || "Genera tu plan.")}</p>
-          <div class="meta-strip">
-            <span class="chip">${stats.weeklySessions} sesiones / 7 dias</span>
-            <span class="chip is-gold">${stats.streakDays} dias de racha</span>
-            <span class="chip">${stats.registeredChallenges} retos activos</span>
+          <div class="dashboard-today-copy">
+            <h2>${escapeHtml(todayTitle)}</h2>
+            <p>${escapeHtml(state.plan?.rationale || "Ajusta tu plan para empezar.")}</p>
+          </div>
+          <div class="dashboard-inline-metrics">
+            <article class="dashboard-inline-metric">
+              <span class="label">Racha</span>
+              <strong>${stats.streakDays} dias</strong>
+            </article>
+            <article class="dashboard-inline-metric">
+              <span class="label">Semana</span>
+              <strong>${stats.weeklySessions} sesiones</strong>
+            </article>
+            <article class="dashboard-inline-metric">
+              <span class="label">Minutos</span>
+              <strong>${stats.weeklyMinutes} min</strong>
+            </article>
+          </div>
+          <div class="button-row">
+            <button class="secondary-button" data-action="open-training-overview">Abrir rutina</button>
+            <button class="ghost-button" data-action="open-training-preferences">Ajustar plan</button>
           </div>
         </aside>
       </div>
 
-      <div class="summary-grid">
-        <article class="summary-card">
-          <span class="label">Sesiones totales</span>
+      <div class="dashboard-kpi-grid">
+        <article class="summary-card dashboard-kpi-card">
+          <span class="label">Sesiones</span>
           <span class="value">${stats.totalSessions}</span>
           <div class="accent-line"></div>
         </article>
-        <article class="summary-card">
-          <span class="label">Macros consumidos hoy</span>
-          <span class="value">${stats.macros.calories}</span>
+        <article class="summary-card dashboard-kpi-card">
+          <span class="label">7 dias</span>
+          <span class="value">${stats.weeklySessions}</span>
           <div class="accent-line"></div>
         </article>
-        <article class="summary-card">
-          <span class="label">Compras pendientes</span>
-          <span class="value">${stats.pendingShopping}</span>
+        <article class="summary-card dashboard-kpi-card">
+          <span class="label">Min semanales</span>
+          <span class="value">${stats.weeklyMinutes}</span>
+          <div class="accent-line"></div>
+        </article>
+        <article class="summary-card dashboard-kpi-card">
+          <span class="label">Recetas</span>
+          <span class="value">${stats.completedRecipes}</span>
           <div class="accent-line"></div>
         </article>
       </div>
 
-      <div class="content-grid">
-        <section class="panel-card">
-          <div class="view-header">
+      <div class="dashboard-main-grid">
+        <section class="panel-card dashboard-session-panel">
+          <div class="panel-title">
             <div>
-              <h2>Resumen</h2>
+              <h2>Tu sesion</h2>
             </div>
+            <button class="ghost-button" data-action="open-training-overview">Ver completa</button>
           </div>
-          <div class="metrics-grid">
-            <article class="metric-card">
-              <span class="label">Enfoque sugerido</span>
-              <span class="value">${escapeHtml(state.plan?.focus || "Listo")}</span>
-              <div class="accent-line"></div>
-            </article>
-            <article class="metric-card gold">
-              <span class="label">Minutos planeados</span>
-              <span class="value">${state.plan?.estimatedMinutes || state.preferences.sessionDurationMinutes}</span>
-              <div class="accent-line"></div>
-            </article>
-            <article class="metric-card magenta">
-              <span class="label">Recetas completadas</span>
-              <span class="value">${stats.completedRecipes}</span>
-              <div class="accent-line"></div>
-            </article>
-          </div>
-          <div class="feature-card">
-            <h3>Top retos registrados</h3>
+          ${
+            leadContext
+              ? `
+                <article class="dashboard-session-feature">
+                  <div>
+                    <p class="eyebrow">Primero</p>
+                    <h3>${escapeHtml(leadContext.entry.exercise.displayName)}</h3>
+                    <p class="panel-copy">${escapeHtml(trainingExerciseSummary(leadContext))} • ${escapeHtml(leadContext.entry.exercise.muscles.slice(0, 2).join(" • "))}</p>
+                  </div>
+                  <span class="family-count">${escapeHtml(trainingEquipmentLabel(leadContext.entry.exercise))}</span>
+                </article>
+                <div class="dashboard-session-list">
+                  ${previewContexts.map((context) => renderDashboardExercisePreview(context)).join("")}
+                </div>
+                ${remainingExerciseCount ? `<p class="small-copy">+${remainingExerciseCount} ejercicios mas dentro de Entrenamiento.</p>` : ""}
+              `
+              : `
+                ${renderEmptyState("Todavia no hay una sesion lista para hoy.")}
+                <button class="secondary-button" data-action="open-training-preferences">Armar mi plan</button>
+              `
+          }
+        </section>
+
+        <div class="dashboard-side-stack">
+          <article class="feature-card dashboard-side-card">
+            <div class="panel-title">
+              <h3>Progreso</h3>
+              <button class="ghost-button" data-action="set-view" data-view="progress">Abrir</button>
+            </div>
+            <div class="metrics-grid">
+              <article class="metric-card">
+                <span class="label">Enfoque</span>
+                <span class="value">${escapeHtml(stats.favoriteFocus)}</span>
+                <div class="accent-line"></div>
+              </article>
+              <article class="metric-card gold">
+                <span class="label">Racha</span>
+                <span class="value">${stats.streakDays}</span>
+                <div class="accent-line"></div>
+              </article>
+            </div>
+          </article>
+
+          <article class="feature-card dashboard-side-card">
+            <div class="panel-title">
+              <h3>Nutricion</h3>
+              <button class="ghost-button" data-action="set-view" data-view="nutrition">Abrir</button>
+            </div>
+            <p class="panel-copy">${stats.macros.calories} / ${calorieTarget || 0} kcal hoy.</p>
+            <div class="dashboard-goal-progress" aria-hidden="true">
+              <span style="width:${calorieProgress}%"></span>
+            </div>
+            <div class="meta-strip">
+              <span class="chip">${stats.completedRecipes} recetas</span>
+              <span class="chip">${stats.pendingShopping} compras</span>
+            </div>
+          </article>
+
+          <article class="feature-card dashboard-side-card">
+            <div class="panel-title">
+              <h3>Retos</h3>
+              <button class="ghost-button" data-action="set-view" data-view="challenges">Abrir</button>
+            </div>
             ${
-              stats.registeredChallengeItems.length
+              challengeHighlight
                 ? `
-                  <div class="challenge-list">
-                    ${stats.registeredChallengeItems
-                      .map(
-                        (item) => `
-                          <article class="challenge-highlight">
-                            <strong>${escapeHtml(item.title)}</strong>
-                            <p class="panel-meta">${escapeHtml(item.subtitle)}</p>
-                          </article>
-                        `
-                      )
+                  <article class="challenge-highlight">
+                    <strong>${escapeHtml(challengeHighlight.title)}</strong>
+                    <p class="panel-meta">${escapeHtml(challengeHighlight.subtitle)}</p>
+                  </article>
+                  <div class="meta-strip">
+                    <span class="chip is-gold">${stats.registeredChallenges} activos</span>
+                    ${(challengeHighlight.tags || [])
+                      .slice(0, 2)
+                      .map((tag) => `<span class="chip">${escapeHtml(tag)}</span>`)
                       .join("")}
                   </div>
                 `
-                : renderEmptyState("Todavia no te registras en un reto o evento.")
+                : renderEmptyState("Todavia no tienes un reto marcado.")
             }
-          </div>
-        </section>
-
-        <section class="plan-shell">
-          <article class="plan-overview panel-card">
-            <div class="plan-title-row">
-              <div>
-                <p class="eyebrow">Plan actual</p>
-                <h3>${escapeHtml(state.plan?.title || "Entrenamiento pendiente")}</h3>
-              </div>
-              <div class="button-row">
-                <button class="secondary-button" data-action="jump-training">Editar preferencias</button>
-                <button class="ghost-button" data-action="jump-progress">Ver progreso</button>
-              </div>
-            </div>
-            <div class="meta-strip">
-              <span class="chip is-jade">${escapeHtml(state.preferences.goal)}</span>
-              <span class="chip">${escapeHtml(state.preferences.split)}</span>
-              <span class="chip is-gold">${state.preferences.sessionDurationMinutes} min</span>
-            </div>
           </article>
-          ${renderPlanBlocks(true)}
-        </section>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function buildTrainingExerciseContexts() {
+  const contexts = [];
+
+  for (const [blockIndex, block] of (state.plan?.blocks || []).entries()) {
+    for (const [exerciseIndex, entry] of block.exercises.entries()) {
+      contexts.push({
+        block,
+        blockIndex,
+        exerciseIndex,
+        absoluteIndex: contexts.length,
+        entry,
+        resolvedEntry: resolvePlanExercise(entry),
+      });
+    }
+  }
+
+  return contexts;
+}
+
+function findTrainingContext(exerciseId, contexts) {
+  return contexts.find((context) => context.entry.id === exerciseId) || null;
+}
+
+function trainingDayLabel(focus) {
+  if (!focus) return "Rutina del dia";
+  return normalize(focus) === "cuerpo completo" ? "Cuerpo completo" : `Dia de ${focus}`;
+}
+
+function trainingUniqueMuscleCount(contexts) {
+  return new Set(
+    contexts.flatMap((context) => context.entry.exercise.muscles.map((muscle) => normalize(muscle)))
+  ).size;
+}
+
+function trainingExerciseSummary(context) {
+  const parts = [`${context.resolvedEntry.sets} series`, context.resolvedEntry.repsText];
+  if (context.resolvedEntry.suggestedWeightKg != null) {
+    parts.push(formatWeightWithUnit(context.resolvedEntry.suggestedWeightKg, context.resolvedEntry.weightUnit));
+  }
+  return parts.join(" • ");
+}
+
+function trainingEquipmentLabel(item) {
+  return item.equipment[0] || "Equipo libre";
+}
+
+function trainingBlockLabel(block, blockIndex) {
+  if (block.type === "superset") return "Superset";
+  if (block.type === "circuit") return "Circuito";
+  return blockIndex === 0 ? "Ejercicio de enfoque" : "Ejercicio";
+}
+
+function renderTrainingPreferencesPanel() {
+  const bodyWeightBounds = bodyWeightInputBounds(state.preferences.weightUnit);
+
+  return `
+    <div class="panel-title">
+      <h3>Ajustes del plan</h3>
+      <span class="chip">${state.preferences.availableEquipment.length} equipos</span>
+    </div>
+    <div class="field-grid">
+      <div class="split-field-grid">
+        <div class="field-group">
+          <label for="bodyweight-input">Peso corporal (${state.preferences.weightUnit})</label>
+          <input
+            id="bodyweight-input"
+            class="number-input"
+            type="number"
+            min="${bodyWeightBounds.min}"
+            max="${bodyWeightBounds.max}"
+            step="${bodyWeightBounds.step}"
+            value="${escapeAttribute(formatEditableWeight(bodyWeightDisplayValue()))}"
+            data-pref="bodyWeightKg"
+          />
+        </div>
+        <div class="field-group">
+          <label for="experience-select">Nivel</label>
+          ${renderSelectInput({
+            id: "experience-select",
+            value: state.preferences.experienceLevel,
+            options: EXPERIENCE_LEVELS.map((level) => ({ value: level, label: level })),
+            dataAttributes: { pref: "experienceLevel" },
+            menuLabel: "Nivel",
+          })}
+        </div>
+      </div>
+      <div class="field-group">
+        <label for="goal-select">Objetivo</label>
+        ${renderSelectInput({
+          id: "goal-select",
+          value: state.preferences.goal,
+          options: GOALS.map((goal) => ({ value: goal, label: goal })),
+          dataAttributes: { pref: "goal" },
+          menuLabel: "Objetivo",
+        })}
+      </div>
+      <div class="field-group">
+        <label for="split-select">Division</label>
+        ${renderSelectInput({
+          id: "split-select",
+          value: state.preferences.split,
+          options: SPLITS.map((split) => ({ value: split, label: split })),
+          dataAttributes: { pref: "split" },
+          menuLabel: "Division",
+        })}
+      </div>
+      <div class="field-group">
+        <label for="duration-range">Duracion de sesion</label>
+        <div class="slider-row">
+          <input
+            id="duration-range"
+            class="slider-input"
+            type="range"
+            min="20"
+            max="100"
+            step="5"
+            value="${state.preferences.sessionDurationMinutes}"
+            data-pref="duration"
+          />
+          <span class="range-badge">${state.preferences.sessionDurationMinutes} min</span>
+        </div>
+      </div>
+      <div class="split-field-grid">
+        <div class="field-group">
+          <label for="strategy-select">Carga</label>
+          ${renderSelectInput({
+            id: "strategy-select",
+            value: state.preferences.loadStrategy,
+            options: LOAD_STRATEGIES.map((strategy) => ({ value: strategy, label: strategy })),
+            dataAttributes: { pref: "loadStrategy" },
+            menuLabel: "Carga",
+          })}
+        </div>
+        <div class="field-group">
+          <label for="weight-unit-select">Unidad global</label>
+          ${renderSelectInput({
+            id: "weight-unit-select",
+            value: state.preferences.weightUnit,
+            options: WEIGHT_UNIT_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
+            dataAttributes: { pref: "weightUnit" },
+            menuLabel: "Unidad global",
+          })}
+        </div>
+      </div>
+      <div class="field-group">
+        <span class="control-label">Equipo disponible</span>
+        <div class="equipment-grid">
+          ${EQUIPMENT_OPTIONS.map((option) => {
+            const active = state.preferences.availableEquipment.includes(option.id);
+            return `
+              <button class="toggle-chip ${active ? "is-active" : ""}" data-action="toggle-equipment" data-equipment="${option.id}">
+                ${escapeHtml(option.label)}
+              </button>
+            `;
+          }).join("")}
+        </div>
+      </div>
+      <div class="button-row">
+        <button class="action-button" data-action="generate-plan">Regenerar plan</button>
+        <button class="secondary-button" data-action="complete-plan">Guardar sesion</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderTrainingOverviewLead(context) {
+  return `
+    <button
+      class="training-focus-card"
+      data-action="open-training-exercise"
+      data-exercise-id="${context.entry.id}"
+      aria-label="Abrir ${escapeAttribute(context.entry.exercise.displayName)}"
+    >
+      <span class="training-focus-order">${String(context.absoluteIndex + 1).padStart(2, "0")}</span>
+      <span class="training-focus-copy">
+        <span class="training-focus-kicker">Ejercicio de enfoque</span>
+        <span class="training-focus-title">${escapeHtml(context.entry.exercise.displayName)}</span>
+        <span class="training-focus-summary">${escapeHtml(trainingExerciseSummary(context))}</span>
+        <span class="training-focus-detail">${escapeHtml(context.entry.exercise.muscles.slice(0, 2).join(" • "))}</span>
+      </span>
+      <span class="training-focus-tag">${escapeHtml(trainingEquipmentLabel(context.entry.exercise))}</span>
+    </button>
+  `;
+}
+
+function renderTrainingRoutineRow(context) {
+  return `
+    <button
+      class="training-routine-row"
+      data-action="open-training-exercise"
+      data-exercise-id="${context.entry.id}"
+      aria-label="Abrir ${escapeAttribute(context.entry.exercise.displayName)}"
+    >
+      <span class="training-routine-order">${String(context.absoluteIndex + 1).padStart(2, "0")}</span>
+      <span class="training-routine-copy">
+        <span class="training-routine-title">${escapeHtml(context.entry.exercise.displayName)}</span>
+        <span class="training-routine-summary">${escapeHtml(trainingExerciseSummary(context))}</span>
+      </span>
+      <span class="training-routine-tag">${escapeHtml(trainingEquipmentLabel(context.entry.exercise))}</span>
+    </button>
+  `;
+}
+
+function renderTrainingOverviewScreen(contexts) {
+  const leadContext = contexts[0] || null;
+  const uniqueMuscles = trainingUniqueMuscleCount(contexts);
+
+  return `
+    <section class="section-stack training-screen training-overview-screen">
+      ${renderMachineProfileDatalist()}
+      <div class="training-topbar training-topbar-overview">
+        <button class="training-crumb" data-action="open-training-preferences">
+          <span class="training-crumb-mark" aria-hidden="true">XI</span>
+          <span class="training-crumb-label">Mi plan</span>
+        </button>
+        <div class="meta-strip">
+          <span class="chip is-jade">${escapeHtml(state.preferences.goal)}</span>
+          <span class="chip is-gold">${state.plan?.estimatedMinutes || state.preferences.sessionDurationMinutes} min</span>
+        </div>
+      </div>
+
+      <article class="glass-panel training-day-card">
+        <div class="training-day-card-head">
+          <div>
+            <h2>${escapeHtml(trainingDayLabel(state.plan?.focus || ""))}</h2>
+            <p class="training-day-card-meta">${contexts.length} ejercicios • ${uniqueMuscles} musculos</p>
+          </div>
+          <button class="secondary-button" data-action="open-training-preferences">Cambiar</button>
+        </div>
+        ${
+          leadContext
+            ? renderTrainingOverviewLead(leadContext)
+            : `
+              <div class="training-empty-card">
+                ${renderEmptyState("No se encontraron ejercicios compatibles con la configuracion actual.")}
+                <button class="secondary-button" data-action="open-training-preferences">Ajustar plan</button>
+              </div>
+            `
+        }
+      </article>
+
+      ${
+        contexts.length
+          ? `
+            <div class="training-routine-stack">
+              ${state.plan.blocks
+                .map((block, blockIndex) => {
+                  const blockContexts = block.exercises
+                    .map((entry) => findTrainingContext(entry.id, contexts))
+                    .filter(Boolean)
+                    .filter((context) => context.entry.id !== leadContext?.entry.id);
+
+                  if (!blockContexts.length) {
+                    return "";
+                  }
+
+                  return `
+                    <section class="training-routine-block">
+                      <div class="training-routine-block-head">
+                        <h3>${escapeHtml(trainingBlockLabel(block, blockIndex))}</h3>
+                        ${block.rounds ? `<span class="chip">${block.rounds} rondas</span>` : ""}
+                      </div>
+                      <div class="training-routine-list">
+                        ${blockContexts.map((context) => renderTrainingRoutineRow(context)).join("")}
+                      </div>
+                    </section>
+                  `;
+                })
+                .join("")}
+            </div>
+          `
+          : ""
+      }
+
+      ${
+        leadContext
+          ? `
+            <div class="training-overview-footer">
+              <button class="action-button" data-action="open-training-exercise" data-exercise-id="${leadContext.entry.id}">
+                Iniciar entrenamiento
+              </button>
+              <button class="ghost-button" data-action="complete-plan">Guardar sesion</button>
+            </div>
+          `
+          : ""
+      }
+    </section>
+  `;
+}
+
+function renderTrainingPreferencesScreen(contexts) {
+  return `
+    <section class="section-stack training-screen training-preferences-screen">
+      ${renderMachineProfileDatalist()}
+      <div class="training-topbar">
+        <button class="secondary-button training-back-button" data-action="back-training-overview">Volver al plan</button>
+        <div class="meta-strip">
+          <span class="chip is-jade">${escapeHtml(state.preferences.goal)}</span>
+          <span class="chip">${contexts.length} ejercicios</span>
+        </div>
+      </div>
+
+      <div class="content-grid training-preferences-layout">
+        <aside class="panel-card training-config training-config-panel">
+          ${renderTrainingPreferencesPanel()}
+        </aside>
+
+        <article class="plan-overview panel-card training-settings-summary">
+          <div class="plan-title-row">
+            <div>
+              <p class="eyebrow">Resumen actual</p>
+              <h3>${escapeHtml(trainingDayLabel(state.plan?.focus || ""))}</h3>
+            </div>
+            <span class="chip is-gold">${state.plan?.estimatedMinutes || state.preferences.sessionDurationMinutes} min</span>
+          </div>
+          <div class="meta-strip">
+            <span class="chip">${escapeHtml(state.preferences.split)}</span>
+            <span class="chip">${trainingUniqueMuscleCount(contexts)} musculos</span>
+            <span class="chip">${escapeHtml(state.preferences.experienceLevel)}</span>
+            <span class="chip">${formatWeightWithUnit(bodyWeightDisplayValue(), state.preferences.weightUnit)}</span>
+          </div>
+        </article>
+      </div>
+    </section>
+  `;
+}
+
+function renderTrainingExerciseScreen(context, contexts) {
+  const nextContext = contexts[context.absoluteIndex + 1] || null;
+
+  return `
+    <section class="section-stack training-screen training-detail-screen">
+      ${renderMachineProfileDatalist()}
+      <div class="training-topbar">
+        <button class="secondary-button training-back-button" data-action="back-training-overview">Volver</button>
+        <span class="chip">${context.absoluteIndex + 1} de ${contexts.length}</span>
+      </div>
+
+      <article class="glass-panel training-detail-hero">
+        <div class="training-detail-hero-head">
+          <div>
+            <p class="eyebrow">${escapeHtml(trainingBlockLabel(context.block, context.blockIndex))}</p>
+            <h2>${escapeHtml(context.entry.exercise.displayName)}</h2>
+            <p class="exercise-subtitle">${escapeHtml(context.entry.exercise.displayTechnique || context.entry.exercise.muscles.slice(0, 2).join(" / "))}</p>
+          </div>
+          <span class="family-count">${escapeHtml(trainingEquipmentLabel(context.entry.exercise))}</span>
+        </div>
+        <div class="meta-strip training-detail-meta">
+          <span class="chip is-gold">${context.resolvedEntry.sets} series</span>
+          <span class="chip">${escapeHtml(context.resolvedEntry.repsText)}</span>
+          <span class="chip">${context.resolvedEntry.suggestedWeightKg != null ? formatWeightWithUnit(context.resolvedEntry.suggestedWeightKg, context.resolvedEntry.weightUnit) : "Sin carga fija"}</span>
+          <span class="chip">${context.resolvedEntry.restSeconds}s descanso</span>
+        </div>
+      </article>
+
+      ${renderPlanExerciseCard(context.entry, false, { hideHeading: true, extraClass: "training-detail-card-body" })}
+
+      <div class="training-detail-footer">
+        <button class="ghost-button" data-action="back-training-overview">Volver al plan</button>
+        ${
+          nextContext
+            ? `<button class="secondary-button" data-action="open-training-exercise" data-exercise-id="${nextContext.entry.id}">Siguiente ejercicio</button>`
+            : `<button class="secondary-button" data-action="complete-plan">Guardar sesion</button>`
+        }
       </div>
     </section>
   `;
 }
 
 function renderTrainingView() {
-  const bodyWeightBounds = bodyWeightInputBounds(state.preferences.weightUnit);
-  return `
-    <section class="section-stack">
-      <div class="view-header">
-        <div>
-          <h2>Entrenamiento</h2>
-        </div>
-        <div class="meta-strip">
-          <span class="chip is-jade">${escapeHtml(state.preferences.goal)}</span>
-          <span class="chip">${escapeHtml(state.preferences.split)}</span>
-          <span class="chip is-gold">${state.preferences.sessionDurationMinutes} min</span>
-        </div>
-      </div>
+  syncTrainingScreenState();
+  const contexts = buildTrainingExerciseContexts();
+  const selectedContext = findTrainingContext(state.ui.selectedTrainingExerciseId || "", contexts);
 
-      <div class="content-grid">
-        <aside class="panel-card training-config">
-          <div class="panel-title">
-            <h3>Preferencias</h3>
-            <span class="chip">${state.preferences.availableEquipment.length} equipos</span>
-          </div>
-          <div class="field-grid">
-            <div class="split-field-grid">
-              <div class="field-group">
-                <label for="bodyweight-input">Peso corporal (${state.preferences.weightUnit})</label>
-                <input
-                  id="bodyweight-input"
-                  class="number-input"
-                  type="number"
-                  min="${bodyWeightBounds.min}"
-                  max="${bodyWeightBounds.max}"
-                  step="${bodyWeightBounds.step}"
-                  value="${escapeAttribute(formatEditableWeight(bodyWeightDisplayValue()))}"
-                  data-pref="bodyWeightKg"
-                />
-              </div>
-              <div class="field-group">
-                <label for="experience-select">Nivel</label>
-                ${renderSelectInput({
-                  id: "experience-select",
-                  value: state.preferences.experienceLevel,
-                  options: EXPERIENCE_LEVELS.map((level) => ({ value: level, label: level })),
-                  dataAttributes: { pref: "experienceLevel" },
-                  menuLabel: "Nivel",
-                })}
-              </div>
-            </div>
-            <div class="field-group">
-              <label for="goal-select">Objetivo</label>
-              ${renderSelectInput({
-                id: "goal-select",
-                value: state.preferences.goal,
-                options: GOALS.map((goal) => ({ value: goal, label: goal })),
-                dataAttributes: { pref: "goal" },
-                menuLabel: "Objetivo",
-              })}
-            </div>
-            <div class="field-group">
-              <label for="split-select">Division</label>
-              ${renderSelectInput({
-                id: "split-select",
-                value: state.preferences.split,
-                options: SPLITS.map((split) => ({ value: split, label: split })),
-                dataAttributes: { pref: "split" },
-                menuLabel: "Division",
-              })}
-            </div>
-            <div class="field-group">
-              <label for="duration-range">Duracion de sesion</label>
-              <div class="slider-row">
-                <input
-                  id="duration-range"
-                  class="slider-input"
-                  type="range"
-                  min="20"
-                  max="100"
-                  step="5"
-                  value="${state.preferences.sessionDurationMinutes}"
-                  data-pref="duration"
-                />
-                <span class="range-badge">${state.preferences.sessionDurationMinutes} min</span>
-              </div>
-            </div>
-            <div class="split-field-grid">
-              <div class="field-group">
-                <label for="strategy-select">Carga</label>
-                ${renderSelectInput({
-                  id: "strategy-select",
-                  value: state.preferences.loadStrategy,
-                  options: LOAD_STRATEGIES.map((strategy) => ({ value: strategy, label: strategy })),
-                  dataAttributes: { pref: "loadStrategy" },
-                  menuLabel: "Carga",
-                })}
-              </div>
-              <div class="field-group">
-                <label for="weight-unit-select">Unidad global</label>
-                ${renderSelectInput({
-                  id: "weight-unit-select",
-                  value: state.preferences.weightUnit,
-                  options: WEIGHT_UNIT_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
-                  dataAttributes: { pref: "weightUnit" },
-                  menuLabel: "Unidad global",
-                })}
-              </div>
-            </div>
-            <div class="field-group">
-              <span class="control-label">Equipo disponible</span>
-              <div class="equipment-grid">
-                ${EQUIPMENT_OPTIONS.map((option) => {
-                  const active = state.preferences.availableEquipment.includes(option.id);
-                  return `
-                    <button class="toggle-chip ${active ? "is-active" : ""}" data-action="toggle-equipment" data-equipment="${option.id}">
-                      ${escapeHtml(option.label)}
-                    </button>
-                  `;
-                }).join("")}
-              </div>
-            </div>
-            <div class="button-row">
-              <button class="action-button" data-action="generate-plan">Regenerar plan</button>
-              <button class="secondary-button" data-action="complete-plan">Completar entrenamiento</button>
-            </div>
-          </div>
-        </aside>
+  if (state.ui.trainingScreen === "preferences") {
+    return renderTrainingPreferencesScreen(contexts);
+  }
 
-        <section class="plan-shell training-plan">
-          <article class="plan-overview panel-card">
-            <div class="plan-title-row">
-              <div>
-                <p class="eyebrow">Plan generado</p>
-                <h3>${escapeHtml(state.plan?.title || "Sin plan disponible")}</h3>
-              </div>
-              <div class="meta-strip">
-                <span class="chip is-jade">${escapeHtml(state.plan?.focus || "-")}</span>
-                <span class="chip is-gold">${state.plan?.estimatedMinutes || state.preferences.sessionDurationMinutes} min</span>
-                <span class="chip">${formatWeightWithUnit(bodyWeightDisplayValue(), state.preferences.weightUnit)}</span>
-                <span class="chip">${escapeHtml(state.preferences.experienceLevel)}</span>
-              </div>
-            </div>
-            <p>${escapeHtml(state.plan?.rationale || "Ajusta tu perfil.")}</p>
-          </article>
-          ${renderMachineProfileDatalist()}
-          ${renderPlanBlocks(false)}
-        </section>
-      </div>
-    </section>
-  `;
+  if (state.ui.trainingScreen === "exercise" && selectedContext) {
+    return renderTrainingExerciseScreen(selectedContext, contexts);
+  }
+
+  return renderTrainingOverviewScreen(contexts);
 }
 
 function renderMachineProfileDatalist() {
@@ -3117,30 +4056,55 @@ function renderPlanBlocks(compact) {
   `;
 }
 
-function renderPlanExerciseCard(entry, compact) {
+function renderPlanExerciseCard(entry, compact, options = {}) {
+  const { hideHeading = false, extraClass = "" } = options;
   const resolvedEntry = resolvePlanExercise(entry);
   const equipmentProfile = resolvedEntry.equipmentProfile;
   const weightUnit = resolvedEntry.weightUnit;
-  const input = state.planInputs[entry.id] || {};
+  const setRows = compact ? [] : buildPlanSetRows(entry, resolvedEntry, resolvedEntry.performanceSnapshot);
+  const canRemoveExtraSet = setRows.length > Math.max(1, entry.sets);
+  const articleClass = ["exercise-card", extraClass].filter(Boolean).join(" ");
+  const trackerSummary = compact
+    ? ""
+    : [
+        `${setRows.length} series`,
+        entry.repsText,
+        resolvedEntry.suggestedWeightKg != null ? formatWeightWithUnit(resolvedEntry.suggestedWeightKg, weightUnit) : "",
+        `${resolvedEntry.restSeconds}s descanso`,
+      ]
+        .filter(Boolean)
+        .join(" • ");
   return `
-    <article class="exercise-card">
-      <div class="exercise-heading">
-        <div>
-          <h4>${escapeHtml(entry.exercise.displayName)}</h4>
-          <p class="exercise-subtitle">${escapeHtml(entry.exercise.displayTechnique || entry.exercise.muscles.slice(0, 2).join(" / "))}</p>
-        </div>
-        <span class="family-count">${escapeHtml(entry.exercise.equipment.join(", ") || "Equipo libre")}</span>
-      </div>
-      <div class="exercise-meta-grid">
-        <div class="mini-stat"><span class="label">Series</span><span class="value">${resolvedEntry.sets}</span></div>
-        <div class="mini-stat"><span class="label">Reps</span><span class="value">${escapeHtml(resolvedEntry.repsText)}</span></div>
-        <div class="mini-stat"><span class="label">Descanso</span><span class="value">${resolvedEntry.restSeconds}s</span></div>
-        <div class="mini-stat"><span class="label">Carga sugerida</span><span class="value">${resolvedEntry.suggestedWeightKg != null ? formatWeightWithUnit(resolvedEntry.suggestedWeightKg, weightUnit) : "-"}</span></div>
-      </div>
-      <div class="exercise-prescription">
-        <p class="small-copy">${escapeHtml(resolvedEntry.notes)}</p>
-        <p class="small-copy">${escapeHtml(resolvedEntry.progressionNote)}</p>
-      </div>
+    <article class="${escapeAttribute(articleClass)}">
+      ${
+        hideHeading
+          ? ""
+          : `
+            <div class="exercise-heading">
+              <div>
+                <h4>${escapeHtml(entry.exercise.displayName)}</h4>
+                <p class="exercise-subtitle">${escapeHtml(entry.exercise.displayTechnique || entry.exercise.muscles.slice(0, 2).join(" / "))}</p>
+              </div>
+              <span class="family-count">${escapeHtml(entry.exercise.equipment.join(", ") || "Equipo libre")}</span>
+            </div>
+          `
+      }
+      ${
+        compact
+          ? `
+            <div class="exercise-meta-grid">
+              <div class="mini-stat"><span class="label">Series</span><span class="value">${resolvedEntry.sets}</span></div>
+              <div class="mini-stat"><span class="label">Reps</span><span class="value">${escapeHtml(resolvedEntry.repsText)}</span></div>
+              <div class="mini-stat"><span class="label">Descanso</span><span class="value">${resolvedEntry.restSeconds}s</span></div>
+              <div class="mini-stat"><span class="label">Carga sugerida</span><span class="value">${resolvedEntry.suggestedWeightKg != null ? formatWeightWithUnit(resolvedEntry.suggestedWeightKg, weightUnit) : "-"}</span></div>
+            </div>
+            <div class="exercise-prescription">
+              <p class="small-copy">${escapeHtml(resolvedEntry.notes)}</p>
+              <p class="small-copy">${escapeHtml(resolvedEntry.progressionNote)}</p>
+            </div>
+          `
+          : ""
+      }
       ${
         compact
           ? ""
@@ -3212,43 +4176,76 @@ function renderPlanExerciseCard(entry, compact) {
                 `
                 : ""
             }
-            <div class="inline-form-grid">
-              <div class="field-group">
-                <label for="weight-${entry.id}">Peso real (${weightUnit})</label>
-                <input
-                  id="weight-${entry.id}"
-                  class="number-input"
-                  type="number"
-                  step="${suggestedWeightStep(entry.exercise, weightUnit)}"
-                  min="0"
-                  value="${escapeAttribute(input.weight ?? "")}"
-                  data-plan-field="weight"
-                  data-exercise-id="${entry.id}"
-                />
+            <div class="set-tracker-card">
+              <div class="set-tracker-head">
+                <div>
+                  <h5>Registro por serie</h5>
+                  <p>${escapeHtml(trackerSummary)}</p>
+                </div>
+                <div class="set-tracker-actions">
+                  ${
+                    canRemoveExtraSet
+                      ? `
+                        <button
+                          class="ghost-button"
+                          data-action="remove-plan-set"
+                          data-exercise-id="${entry.id}"
+                        >
+                          Quitar extra
+                        </button>
+                      `
+                      : ""
+                  }
+                  <button
+                    class="secondary-button"
+                    data-action="add-plan-set"
+                    data-exercise-id="${entry.id}"
+                  >
+                    Agregar serie
+                  </button>
+                </div>
               </div>
-              <div class="field-group">
-                <label for="reps-${entry.id}">Reps logradas</label>
-                <input
-                  id="reps-${entry.id}"
-                  class="number-input"
-                  type="number"
-                  step="1"
-                  min="0"
-                  value="${escapeAttribute(input.reps ?? "")}"
-                  data-plan-field="reps"
-                  data-exercise-id="${entry.id}"
-                />
+              <div class="set-tracker-grid">
+                ${setRows
+                  .map(
+                    (setRow) => `
+                      <div class="set-row">
+                        <span class="set-badge">${setRow.index + 1}</span>
+                        <div class="set-field">
+                          <label for="set-reps-${entry.id}-${setRow.index}">Reps</label>
+                          <input
+                            id="set-reps-${entry.id}-${setRow.index}"
+                            class="number-input"
+                            type="number"
+                            step="1"
+                            min="0"
+                            value="${escapeAttribute(setRow.reps ?? "")}"
+                            data-plan-set-field="reps"
+                            data-exercise-id="${entry.id}"
+                            data-set-index="${setRow.index}"
+                          />
+                        </div>
+                        <div class="set-field">
+                          <label for="set-weight-${entry.id}-${setRow.index}">Peso (${weightUnit})</label>
+                          <input
+                            id="set-weight-${entry.id}-${setRow.index}"
+                            class="number-input"
+                            type="number"
+                            step="${suggestedWeightStep(entry.exercise, weightUnit)}"
+                            min="0"
+                            value="${escapeAttribute(setRow.weight ?? "")}"
+                            data-plan-set-field="weight"
+                            data-exercise-id="${entry.id}"
+                            data-set-index="${setRow.index}"
+                          />
+                        </div>
+                      </div>
+                    `
+                  )
+                  .join("")}
               </div>
             </div>
-            <div class="exercise-action-row">
-              <button
-                class="secondary-button"
-                data-action="apply-suggested-load"
-                data-exercise-id="${entry.id}"
-                ${resolvedEntry.suggestedWeightKg == null ? "disabled" : ""}
-              >
-                Usar sugerida
-              </button>
+            <div class="exercise-action-row exercise-action-row-single">
               <button
                 class="ghost-button"
                 data-action="start-rest-timer"
