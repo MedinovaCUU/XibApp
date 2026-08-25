@@ -2,6 +2,7 @@ const STORAGE_KEYS = {
   preferences: "xibapp.web.preferences.v1",
   history: "xibapp.web.history.v1",
   performance: "xibapp.web.performance.v1",
+  equipmentProfiles: "xibapp.web.equipmentProfiles.v1",
   completedRecipes: "xibapp.web.completedRecipes.v1",
   shoppingList: "xibapp.web.shoppingList.v1",
   challengeRegistrations: "xibapp.web.challengeRegistrations.v1",
@@ -129,6 +130,179 @@ const EQUIPMENT_OPTIONS = [
   { id: "rower", label: "Remo ergometro", aliases: ["remo ergometro", "rower", "ergometer"] },
 ];
 
+const EXPERIENCE_LEVELS = ["Principiante", "Intermedio", "Avanzado"];
+
+const LOAD_STRATEGIES = ["Conservadora", "Equilibrada", "Agresiva"];
+
+const WEIGHT_UNIT_OPTIONS = [
+  { id: "kg", label: "kg" },
+  { id: "lb", label: "lb" },
+];
+
+const LOAD_MODE_OPTIONS = [
+  { id: "stack", label: "Torre guiada" },
+  { id: "cable", label: "Polea" },
+  { id: "plate_loaded", label: "Discos / palanca" },
+];
+
+const MACHINE_BRAND_OPTIONS = [
+  {
+    id: "generic",
+    label: "Generica",
+    aliases: ["generica", "generico", "maquina generica", "polea generica"],
+    machineMultiplier: 1,
+    cableMultiplier: 1,
+    note: "Base neutra",
+  },
+  {
+    id: "technogym",
+    label: "Technogym",
+    aliases: ["techno gym", "selection", "technogym selection"],
+    machineMultiplier: 0.96,
+    cableMultiplier: 0.93,
+    note: "Perfil suave en polea",
+  },
+  {
+    id: "lifefitness",
+    label: "Life Fitness",
+    aliases: ["life fitness", "insignia", "signature"],
+    machineMultiplier: 0.98,
+    cableMultiplier: 0.96,
+    note: "Recorrido estable",
+  },
+  {
+    id: "hammerstrength",
+    label: "Hammer Strength",
+    aliases: ["hammer strength", "hammer", "iso lateral", "iso-lateral"],
+    machineMultiplier: 1.04,
+    cableMultiplier: 1,
+    note: "Tendencia mas pesada",
+  },
+  {
+    id: "matrix",
+    label: "Matrix",
+    aliases: ["matrix", "matrix ultra", "ultra"],
+    machineMultiplier: 0.97,
+    cableMultiplier: 0.95,
+    note: "Sensacion ligeramente ligera",
+  },
+  {
+    id: "precor",
+    label: "Precor",
+    aliases: ["precor", "vitality"],
+    machineMultiplier: 0.95,
+    cableMultiplier: 0.94,
+    note: "Resistencia progresiva suave",
+  },
+  {
+    id: "panatta",
+    label: "Panatta",
+    aliases: ["panatta", "monolith"],
+    machineMultiplier: 1.02,
+    cableMultiplier: 0.99,
+    note: "Perfil cercano a carga libre",
+  },
+];
+
+const LOAD_PATTERN_PROFILES = [
+  {
+    id: "knee-dominant",
+    ratio: 0.82,
+    minKg: 18,
+    keywords: ["sentadilla", "squat", "hack", "prensa", "leg press", "front squat"],
+  },
+  {
+    id: "hinge",
+    ratio: 0.74,
+    minKg: 18,
+    keywords: ["peso muerto", "deadlift", "hip thrust", "rdl", "buenos dias", "good morning"],
+  },
+  {
+    id: "single-leg",
+    ratio: 0.28,
+    minKg: 8,
+    keywords: ["lunge", "zancada", "bulgar", "split squat", "step up", "desplante"],
+  },
+  {
+    id: "horizontal-push",
+    ratio: 0.38,
+    minKg: 8,
+    keywords: ["press banca", "bench press", "chest press", "press horizontal", "push up"],
+  },
+  {
+    id: "incline-push",
+    ratio: 0.34,
+    minKg: 8,
+    keywords: ["inclinado", "incline", "press superior"],
+  },
+  {
+    id: "vertical-push",
+    ratio: 0.27,
+    minKg: 6,
+    keywords: ["press militar", "overhead press", "shoulder press", "arnold"],
+  },
+  {
+    id: "horizontal-pull",
+    ratio: 0.42,
+    minKg: 8,
+    keywords: ["remo", "row", "seal row", "pullover"],
+  },
+  {
+    id: "vertical-pull",
+    ratio: 0.48,
+    minKg: 10,
+    keywords: ["jalon", "pulldown", "dominada", "pull up", "chin up"],
+  },
+  {
+    id: "leg-isolation",
+    ratio: 0.36,
+    minKg: 8,
+    keywords: ["extension", "curl femoral", "leg curl", "leg extension", "aductor", "abductor"],
+  },
+  {
+    id: "chest-isolation",
+    ratio: 0.22,
+    minKg: 4,
+    keywords: ["apertura", "fly", "pec deck", "crossover", "cruce de poleas"],
+  },
+  {
+    id: "shoulder-isolation",
+    ratio: 0.12,
+    minKg: 3,
+    keywords: ["elevacion lateral", "lateral raise", "rear delt", "pajaro", "face pull"],
+  },
+  {
+    id: "arm-isolation",
+    ratio: 0.16,
+    minKg: 4,
+    keywords: ["curl", "tricep", "triceps", "extension de triceps", "predicador"],
+  },
+  {
+    id: "calf",
+    ratio: 0.42,
+    minKg: 10,
+    keywords: ["pantorrilla", "calf"],
+  },
+  {
+    id: "core",
+    ratio: null,
+    minKg: 0,
+    keywords: ["abdomen", "abdominal", "crunch", "plancha", "core", "hollow", "wheel"],
+  },
+  {
+    id: "conditioning",
+    ratio: null,
+    minKg: 0,
+    keywords: ["bike", "bicicleta", "remo ergometro", "ergometer", "cuerda", "jump rope", "sprint", "cardio"],
+  },
+  {
+    id: "generic",
+    ratio: 0.2,
+    minKg: 4,
+    keywords: [],
+  },
+];
+
 const MEAL_ORDER = [
   { key: "desayuno", label: "Desayuno" },
   { key: "comida", label: "Comida" },
@@ -141,6 +315,10 @@ const DEFAULT_PREFERENCES = {
   split: "Empuje/Jalon/Piernas",
   sessionDurationMinutes: 60,
   availableEquipment: ["bodyweight", "dumbbells", "bench"],
+  bodyWeightKg: 70,
+  weightUnit: "kg",
+  experienceLevel: "Intermedio",
+  loadStrategy: "Equilibrada",
 };
 
 const GOAL_MACRO_TARGETS = {
@@ -149,6 +327,26 @@ const GOAL_MACRO_TARGETS = {
   "Definir musculo": { calories: 2100, protein: 170, carbs: 185, fats: 65 },
   "Ganar fuerza": { calories: 2500, protein: 175, carbs: 260, fats: 80 },
   "Mejorar condicion fisica": { calories: 2200, protein: 150, carbs: 220, fats: 70 },
+};
+
+const EXPERIENCE_LOAD_FACTORS = {
+  Principiante: 0.84,
+  Intermedio: 1,
+  Avanzado: 1.14,
+};
+
+const LOAD_STRATEGY_FACTORS = {
+  Conservadora: 0.93,
+  Equilibrada: 1,
+  Agresiva: 1.08,
+};
+
+const GOAL_LOAD_FACTORS = {
+  "Ganar fuerza": 1.06,
+  "Ganar musculo": 1,
+  "Definir musculo": 0.95,
+  "Reducir peso corporal": 0.9,
+  "Mejorar condicion fisica": 0.84,
 };
 
 const state = {
@@ -164,11 +362,13 @@ const state = {
   preferences: loadStoredPreferences(),
   history: loadStoredHistory(),
   performanceBySlug: loadStoredPerformance(),
+  equipmentProfiles: loadStoredEquipmentProfiles(),
   completedRecipes: new Set(loadStoredArray(STORAGE_KEYS.completedRecipes)),
   shoppingList: loadStoredArray(STORAGE_KEYS.shoppingList),
   challengeRegistrations: loadStoredObject(STORAGE_KEYS.challengeRegistrations),
   plan: null,
   planInputs: {},
+  restTimer: buildIdleRestTimer(),
   ui: {
     exerciseQuery: "",
     recipeFilter: "all",
@@ -179,6 +379,7 @@ const state = {
 
 const appRoot = document.querySelector("#app");
 let toastTimer = null;
+let restTimerInterval = null;
 
 window.addEventListener("hashchange", syncViewFromHash);
 document.addEventListener("click", handleClick);
@@ -360,7 +561,8 @@ function makePlan(preferences, history, catalog, performanceBySlug) {
         performanceSnapshotForItem(item, performanceBySlug),
         basePrescription.repsText,
         preferences.goal,
-        intensity
+        intensity,
+        preferences
       );
 
       return {
@@ -401,7 +603,7 @@ function makePlan(preferences, history, catalog, performanceBySlug) {
     subtitle: `${preferences.goal} | ${estimatedMinutes} min`,
     estimatedMinutes,
     rationale:
-      rationale(preferences.goal, preferences.split, focus, adjustedDuration, preferences.availableEquipment.length, focusFatigue) +
+      rationale(preferences, focus, adjustedDuration, focusFatigue) +
       (hasMatches ? "" : " No se encontraron ejercicios compatibles con el equipo seleccionado."),
     blocks,
   };
@@ -668,43 +870,114 @@ function adjustRest(base, fatigue, blockType) {
   return Math.max(20, base + fatigueExtra + typeAdjustment);
 }
 
-function makeProgression(item, snapshot, repsText, goal, intensity) {
+function makeProgression(item, snapshot, repsText, goal, intensity, preferences, equipmentProfile = exerciseEquipmentProfile(item)) {
+  const baseline = estimateBaselineLoad(item, preferences, repsText, goal, intensity, equipmentProfile);
+  const range = parseRepRange(repsText);
+  const weightUnit = resolvedExerciseWeightUnit(item, equipmentProfile);
+  const roundingStep = suggestedWeightStep(item, weightUnit);
+  const equipmentClass = inferEquipmentClass(item);
+  const progressData = transferableProgressData(item, snapshot, equipmentProfile, baseline.suggestedWeightKg);
+
   if (!snapshot) {
     return {
-      suggestedWeightKg: null,
-      note: "Sin historial. Registra tus series para activar progresion automatica.",
+      suggestedWeightKg: baseline.suggestedWeightKg,
+      note:
+        baseline.note ||
+        "Sin historial. Registra tus series para activar progresion automatica.",
     };
   }
 
-  const range = parseRepRange(repsText);
   if (!range) {
+    const snapshotProfile = equipmentProfileFromSnapshot(snapshot, item);
+    const timeBasedWeight = roundToNearest(
+      Math.max(
+        0,
+        Number.isFinite(Number(snapshot.lastWeightKg))
+          ? convertStoredWeightKgToDisplayed(item, Number(snapshot.lastWeightKg), snapshotProfile, equipmentProfile)
+          : Number(baseline.suggestedWeightKg || 0)
+      ),
+      roundingStep
+    );
     return {
-      suggestedWeightKg: snapshot.lastWeightKg || null,
-      note: "Manten ritmo y tecnica; esta variante se guia por tiempo.",
+      suggestedWeightKg: timeBasedWeight || null,
+      note: timeBasedWeight
+        ? `Base ${formatWeightWithUnit(timeBasedWeight, weightUnit)}. Controla el ritmo.`
+        : "Manten ritmo y tecnica; esta variante se guia por tiempo.",
     };
   }
 
-  const lastWeight = Number(snapshot.lastWeightKg || 0);
+  if (equipmentClass === "bodyweight" && !isWeightedVariation(item)) {
+    if (!range) {
+      return {
+        suggestedWeightKg: null,
+        note: "Movimiento libre. Mantiene ritmo y control.",
+      };
+    }
+
+    return {
+      suggestedWeightKg: null,
+      note:
+        Number(snapshot.lastReps || 0) >= range.max
+          ? `Cumpliste ${range.max} reps. Sube dificultad o agrega lastre ligero.`
+          : `Busca ${range.min}-${range.max} reps con control corporal.`,
+    };
+  }
+
+  const snapshotProfile = equipmentProfileFromSnapshot(snapshot, item);
+  const convertedSnapshotWeight = Number.isFinite(Number(snapshot.lastWeightKg))
+    ? convertStoredWeightKgToDisplayed(item, Number(snapshot.lastWeightKg), snapshotProfile, equipmentProfile)
+    : Number(baseline.suggestedWeightKg || 0);
+  const lastWeight = Number(
+    convertedSnapshotWeight ||
+      progressData.transferSuggestedWeightKg ||
+      baseline.suggestedWeightKg ||
+      0
+  );
   const lastReps = Number(snapshot.lastReps || 0);
-  const incrementStep = intensity === "heavy" ? 2.5 : intensity === "moderate" ? 1.25 : 1.0;
+  const incrementStep = progressionIncrementStep(item, intensity, weightUnit);
+  const strategyFactor = LOAD_STRATEGY_FACTORS[preferences.loadStrategy] || 1;
 
   let delta = 0;
   if (lastReps >= range.max) {
-    if (goal === "Ganar fuerza" || goal === "Ganar musculo") delta = incrementStep;
-    if (goal === "Definir musculo") delta = incrementStep * 0.5;
+    if (goal === "Ganar fuerza" || goal === "Ganar musculo") delta = incrementStep * strategyFactor;
+    else if (goal === "Definir musculo") delta = incrementStep * 0.5 * strategyFactor;
+    else delta = incrementStep * 0.25 * strategyFactor;
   } else if (lastReps < range.min) {
     if (goal === "Ganar fuerza" || goal === "Ganar musculo") delta = -incrementStep * 0.5;
+    else delta = -incrementStep * 0.25;
   }
 
-  const suggestedWeightKg = roundToNearest(Math.max(0, lastWeight + delta), 0.5);
+  let rawSuggested = Math.max(0, lastWeight + delta);
+  if (progressData.transferSuggestedWeightKg != null) {
+    const blendedTransferBase =
+      snapshotProfile.brandId !== equipmentProfile.brandId || snapshotProfile.loadMode !== equipmentProfile.loadMode
+        ? progressData.transferSuggestedWeightKg
+        : lastWeight > 0
+          ? lastWeight * 0.68 + progressData.transferSuggestedWeightKg * 0.32
+          : progressData.transferSuggestedWeightKg;
+
+    rawSuggested =
+      rawSuggested > 0
+        ? rawSuggested * 0.62 + blendedTransferBase * 0.38
+        : blendedTransferBase;
+  }
+
+  if (baseline.suggestedWeightKg != null && snapshot.sessionsCount <= 2 && lastWeight > 0) {
+    rawSuggested = rawSuggested * 0.72 + baseline.suggestedWeightKg * 0.28;
+  }
+
+  const suggestedWeightKg = roundToNearest(rawSuggested, roundingStep);
   const note =
     delta > 0
-      ? `Progresion: +${formatWeight(delta)} kg respecto a tu ultimo registro.`
+      ? `Sube a ${formatWeightWithUnit(suggestedWeightKg, weightUnit)}.`
       : delta < 0
-        ? `Ajuste tecnico: baja ~${formatWeight(Math.abs(delta))} kg para cumplir el rango objetivo.`
-        : `Manten ${formatWeight(lastWeight)} kg y busca ${range.min}-${range.max} reps limpias.`;
+        ? `Baja a ${formatWeightWithUnit(suggestedWeightKg, weightUnit)} y prioriza tecnica.`
+        : `Manten ${formatWeightWithUnit(suggestedWeightKg, weightUnit)} para ${range.min}-${range.max} reps.`;
 
-  return { suggestedWeightKg, note };
+  return {
+    suggestedWeightKg,
+    note: [note, baseline.machineAdjustmentLabel, progressData.label].filter(Boolean).join(" • "),
+  };
 }
 
 function performanceSnapshotForItem(item, performanceBySlug) {
@@ -740,8 +1013,562 @@ function roundToNearest(value, step) {
   return Math.round(value / step) * step;
 }
 
+function normalizeWeightUnit(unit) {
+  return unit === "lb" ? "lb" : "kg";
+}
+
+function convertWeightValue(value, fromUnit, toUnit) {
+  if (!Number.isFinite(Number(value))) {
+    return Number(value);
+  }
+
+  const normalizedFrom = normalizeWeightUnit(fromUnit);
+  const normalizedTo = normalizeWeightUnit(toUnit);
+  if (normalizedFrom === normalizedTo) {
+    return Number(value);
+  }
+
+  if (normalizedFrom === "kg" && normalizedTo === "lb") {
+    return Number(value) * 2.2046226218;
+  }
+
+  return Number(value) / 2.2046226218;
+}
+
+function displayedWeightFromStoredKg(weightKg, unit) {
+  return convertWeightValue(weightKg, "kg", normalizeWeightUnit(unit));
+}
+
+function storedWeightKgFromDisplayed(displayedWeight, unit) {
+  return convertWeightValue(displayedWeight, normalizeWeightUnit(unit), "kg");
+}
+
 function formatWeight(value) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+function formatWeightWithUnit(value, unit) {
+  return `${formatWeight(value)} ${normalizeWeightUnit(unit)}`;
+}
+
+function machineBrandProfile(id) {
+  return MACHINE_BRAND_OPTIONS.find((entry) => entry.id === id) || MACHINE_BRAND_OPTIONS[0];
+}
+
+function machineBrandFromLabel(label) {
+  const normalizedLabel = normalize(label);
+  if (!normalizedLabel) {
+    return machineBrandProfile("generic");
+  }
+
+  return (
+    MACHINE_BRAND_OPTIONS.find((entry) =>
+      [entry.label, ...(entry.aliases || [])].some((value) => {
+        const token = normalize(value);
+        return normalizedLabel === token || normalizedLabel.includes(token) || token.includes(normalizedLabel);
+      })
+    ) || machineBrandProfile("generic")
+  );
+}
+
+function isWeightedVariation(item) {
+  const blob = normalize([item.name, item.displayName, item.slug].join(" "));
+  return blob.includes("lastrado") || blob.includes("weighted");
+}
+
+function inferEquipmentClass(item) {
+  const tokens = (item.equipment || []).map(normalize);
+  if (!tokens.length) {
+    return "bodyweight";
+  }
+  if (tokens.some((token) => token.includes("bike") || token.includes("bicicleta") || token.includes("rower") || token.includes("ergometro") || token.includes("cuerda"))) {
+    return "conditioning";
+  }
+  if (tokens.some((token) => token.includes("maquina") || token.includes("machine"))) {
+    return "machine";
+  }
+  if (tokens.some((token) => token.includes("polea") || token.includes("cable"))) {
+    return "cable";
+  }
+  if (tokens.some((token) => token.includes("barra") || token.includes("mancuer") || token.includes("kettlebell") || token.includes("disco"))) {
+    return "freeweight";
+  }
+  if (tokens.some((token) => token.includes("peso corporal") || token.includes("paralela") || token.includes("dominadas"))) {
+    return "bodyweight";
+  }
+  return "mixed";
+}
+
+function inferLoadPattern(item) {
+  const blob = normalize([item.name, item.displayName, item.slug, item.muscles.join(" ")].join(" "));
+  return (
+    LOAD_PATTERN_PROFILES.find(
+      (profile) => profile.id !== "generic" && profile.keywords.some((keyword) => blob.includes(keyword))
+    ) || LOAD_PATTERN_PROFILES.find((profile) => profile.id === "generic")
+  );
+}
+
+function repRangeLoadFactor(range) {
+  if (!range) return 1;
+  if (range.max <= 6) return 1.08;
+  if (range.max <= 8) return 1.03;
+  if (range.max <= 12) return 0.97;
+  if (range.max <= 15) return 0.9;
+  return 0.8;
+}
+
+function suggestedWeightStep(item, unit = "kg") {
+  const resolvedUnit = normalizeWeightUnit(unit);
+  const equipmentClass = inferEquipmentClass(item);
+  if (resolvedUnit === "lb") {
+    if (equipmentClass === "freeweight") {
+      const blob = normalize([item.name, item.displayName, item.slug, item.equipment.join(" ")].join(" "));
+      return blob.includes("barra") || blob.includes("barbell") || blob.includes("disco") ? 5 : 2.5;
+    }
+    if (equipmentClass === "machine" || equipmentClass === "cable") return 5;
+    return 1;
+  }
+
+  if (equipmentClass === "freeweight") {
+    const blob = normalize([item.name, item.displayName, item.slug, item.equipment.join(" ")].join(" "));
+    return blob.includes("barra") || blob.includes("barbell") || blob.includes("disco") ? 2.5 : 1;
+  }
+  if (equipmentClass === "machine" || equipmentClass === "cable") return 1.25;
+  return 0.5;
+}
+
+function progressionIncrementStep(item, intensity, unit = "kg") {
+  const resolvedUnit = normalizeWeightUnit(unit);
+  const equipmentClass = inferEquipmentClass(item);
+  if (resolvedUnit === "lb") {
+    if (equipmentClass === "freeweight") {
+      return intensity === "heavy" ? 5 : 2.5;
+    }
+    if (equipmentClass === "machine" || equipmentClass === "cable") {
+      return intensity === "heavy" ? 5 : 2.5;
+    }
+    return intensity === "heavy" ? 2.5 : 1;
+  }
+
+  if (equipmentClass === "freeweight") {
+    return intensity === "heavy" ? 2.5 : 1.25;
+  }
+  if (equipmentClass === "machine" || equipmentClass === "cable") {
+    return intensity === "heavy" ? 2.5 : 1.25;
+  }
+  return intensity === "heavy" ? 1.25 : 0.5;
+}
+
+function signedPercent(value) {
+  if (Math.abs(value) < 0.5) return "";
+  return `${value > 0 ? "+" : ""}${Math.round(value)}%`;
+}
+
+function isMachineAdjustable(item) {
+  const equipmentClass = inferEquipmentClass(item);
+  return equipmentClass === "machine" || equipmentClass === "cable";
+}
+
+function supportsWeightTypeSelection(item) {
+  return isMachineAdjustable(item);
+}
+
+function defaultLoadModeForItem(item) {
+  return inferEquipmentClass(item) === "cable" ? "cable" : "stack";
+}
+
+function normalizeLoadModeForItem(item, loadMode) {
+  if (!supportsWeightTypeSelection(item)) {
+    return defaultLoadModeForItem(item);
+  }
+
+  if (LOAD_MODE_OPTIONS.some((option) => option.id === loadMode)) {
+    return loadMode;
+  }
+
+  if (loadMode === "per_arm") {
+    return inferEquipmentClass(item) === "cable" ? "cable" : "plate_loaded";
+  }
+
+  if (loadMode === "displayed_total") {
+    return defaultLoadModeForItem(item);
+  }
+
+  return defaultLoadModeForItem(item);
+}
+
+function exerciseProfileKey(item) {
+  return normalize(item.slug || item.id || item.displayName || item.name);
+}
+
+function defaultEquipmentProfileForItem(item) {
+  return {
+    brandId: "generic",
+    label: "Generica",
+    loadMode: defaultLoadModeForItem(item),
+    unitOverride: null,
+  };
+}
+
+function sanitizeEquipmentProfile(item, profile = {}) {
+  const defaults = defaultEquipmentProfileForItem(item);
+  const rawLabel = String(profile.label || defaults.label).trim();
+  const matchedBrand = machineBrandFromLabel(rawLabel || profile.brandId || defaults.brandId);
+
+  return {
+    brandId: matchedBrand.id,
+    label: rawLabel || matchedBrand.label,
+    loadMode: normalizeLoadModeForItem(item, profile.loadMode ?? defaults.loadMode),
+    unitOverride: WEIGHT_UNIT_OPTIONS.some((option) => option.id === profile.unitOverride)
+      ? profile.unitOverride
+      : null,
+  };
+}
+
+function materializeEquipmentProfile(item, profile = {}, globalUnit = state.preferences.weightUnit) {
+  const sanitized = sanitizeEquipmentProfile(item, profile);
+  return {
+    ...sanitized,
+    weightUnit: normalizeWeightUnit(sanitized.unitOverride || globalUnit),
+  };
+}
+
+function exerciseEquipmentProfile(item) {
+  const stored = state.equipmentProfiles[exerciseProfileKey(item)] || {};
+  return materializeEquipmentProfile(item, stored, state.preferences.weightUnit);
+}
+
+function resolvedExerciseWeightUnit(item, equipmentProfile = exerciseEquipmentProfile(item)) {
+  return normalizeWeightUnit(equipmentProfile.weightUnit || equipmentProfile.unitOverride || state.preferences.weightUnit);
+}
+
+function updateEquipmentProfileForExercise(exerciseId, patch) {
+  const entry = findPlanExerciseById(exerciseId);
+  if (!entry) {
+    return;
+  }
+
+  const item = entry.exercise;
+  const key = exerciseProfileKey(item);
+  const currentProfile = exerciseEquipmentProfile(item);
+  const nextProfile = materializeEquipmentProfile(item, {
+    ...currentProfile,
+    ...patch,
+  }, state.preferences.weightUnit);
+
+  const weightInput = state.planInputs[exerciseId]?.weight;
+  if (weightInput !== undefined && weightInput !== "") {
+    const numericWeight = Number(weightInput);
+    if (Number.isFinite(numericWeight)) {
+      const converted = convertDisplayedLoad(item, numericWeight, currentProfile, nextProfile);
+      state.planInputs[exerciseId].weight = formatEditableWeight(converted);
+    }
+  }
+
+  state.equipmentProfiles[key] = {
+    brandId: nextProfile.brandId,
+    label: nextProfile.label,
+    loadMode: nextProfile.loadMode,
+    unitOverride: nextProfile.unitOverride,
+  };
+  persistState();
+  render();
+}
+
+function equipmentProfileFromSnapshot(snapshot, item) {
+  if (!snapshot || !isMachineAdjustable(item)) {
+    return exerciseEquipmentProfile(item);
+  }
+
+  return materializeEquipmentProfile(item, {
+    brandId: snapshot.machineBrandId,
+    label: snapshot.machineLabel,
+    loadMode: snapshot.loadMode,
+    unitOverride: snapshot.weightUnit,
+  });
+}
+
+function machineBrandFactor(item, equipmentProfile) {
+  const brand = machineBrandProfile(equipmentProfile.brandId);
+  const equipmentClass = inferEquipmentClass(item);
+  if (equipmentClass === "machine") {
+    return brand.machineMultiplier;
+  }
+  if (equipmentClass === "cable") {
+    return brand.cableMultiplier;
+  }
+  return 1;
+}
+
+function resistanceProfileFactor(item, equipmentProfile) {
+  const equipmentClass = inferEquipmentClass(item);
+  const loadMode = normalizeLoadModeForItem(item, equipmentProfile.loadMode);
+
+  if (loadMode === "plate_loaded") {
+    return equipmentClass === "cable" ? 1.08 : 1.1;
+  }
+
+  if (loadMode === "cable") {
+    return equipmentClass === "machine" ? 1.08 : 1.12;
+  }
+
+  return equipmentClass === "cable" ? 1.04 : 1;
+}
+
+function referenceLoadFromStoredWeightKg(item, storedWeightKg, equipmentProfile) {
+  if (!Number.isFinite(storedWeightKg) || storedWeightKg <= 0) {
+    return 0;
+  }
+
+  return (storedWeightKg * resistanceProfileFactor(item, equipmentProfile)) / Math.max(machineBrandFactor(item, equipmentProfile), 0.01);
+}
+
+function referenceLoadFromDisplayed(item, displayedWeight, equipmentProfile) {
+  if (!Number.isFinite(displayedWeight) || displayedWeight <= 0) {
+    return 0;
+  }
+
+  const storedWeightKg = storedWeightKgFromDisplayed(displayedWeight, equipmentProfile.weightUnit);
+  return referenceLoadFromStoredWeightKg(item, storedWeightKg, equipmentProfile);
+}
+
+function displayedLoadFromReference(item, referenceLoad, equipmentProfile) {
+  if (!Number.isFinite(referenceLoad) || referenceLoad <= 0) {
+    return 0;
+  }
+
+  const storedWeightKg =
+    (referenceLoad * machineBrandFactor(item, equipmentProfile)) / Math.max(resistanceProfileFactor(item, equipmentProfile), 1);
+  return displayedWeightFromStoredKg(storedWeightKg, equipmentProfile.weightUnit);
+}
+
+function convertStoredWeightKgToDisplayed(item, storedWeightKg, fromProfile, toProfile) {
+  if (!Number.isFinite(storedWeightKg) || storedWeightKg <= 0) {
+    return storedWeightKg;
+  }
+
+  const referenceLoad = referenceLoadFromStoredWeightKg(item, storedWeightKg, fromProfile);
+  const converted = displayedLoadFromReference(item, referenceLoad, toProfile);
+  return roundToNearest(converted, suggestedWeightStep(item, toProfile.weightUnit));
+}
+
+function convertDisplayedLoad(item, displayedWeight, fromProfile, toProfile) {
+  if (!Number.isFinite(displayedWeight) || displayedWeight <= 0) {
+    return displayedWeight;
+  }
+
+  const referenceLoad = referenceLoadFromDisplayed(item, displayedWeight, fromProfile);
+  const converted = displayedLoadFromReference(item, referenceLoad, toProfile);
+  return roundToNearest(converted, suggestedWeightStep(item, toProfile.weightUnit));
+}
+
+function transferableProgressData(item, snapshot, currentProfile, baselineSuggestedWeightKg) {
+  if (!snapshot || Number(snapshot.sessionsCount || 0) < 2) {
+    return {
+      factor: 1,
+      transferSuggestedWeightKg: baselineSuggestedWeightKg ?? null,
+      label: "",
+    };
+  }
+
+  const snapshotProfile = equipmentProfileFromSnapshot(snapshot, item);
+  const fallbackLastReference = referenceLoadFromStoredWeightKg(item, Number(snapshot.lastWeightKg || 0), snapshotProfile);
+  const fallbackBestReference = referenceLoadFromStoredWeightKg(
+    item,
+    Math.max(Number(snapshot.bestWeightKg || 0), Number(snapshot.lastWeightKg || 0)),
+    snapshotProfile
+  );
+  const firstReference = Number(snapshot.firstReferenceWeightKg || 0);
+  const peakReference = Math.max(
+    Number(snapshot.bestReferenceWeightKg || 0),
+    Number(snapshot.lastReferenceWeightKg || 0),
+    fallbackBestReference,
+    fallbackLastReference
+  );
+
+  if (!(firstReference > 0) || !(peakReference > 0)) {
+    return {
+      factor: 1,
+      transferSuggestedWeightKg: baselineSuggestedWeightKg ?? null,
+      label: "",
+    };
+  }
+
+  const factor = Math.min(3.5, Math.max(0.7, peakReference / firstReference));
+  if (!Number.isFinite(factor) || factor <= 0) {
+    return {
+      factor: 1,
+      transferSuggestedWeightKg: baselineSuggestedWeightKg ?? null,
+      label: "",
+    };
+  }
+
+  const transferSuggestedWeightKg =
+    baselineSuggestedWeightKg != null
+      ? roundToNearest(
+          Math.max(0, baselineSuggestedWeightKg * factor),
+          suggestedWeightStep(item, currentProfile.weightUnit)
+        )
+      : null;
+  const profileChanged =
+    snapshotProfile.brandId !== currentProfile.brandId || snapshotProfile.loadMode !== currentProfile.loadMode;
+  const label =
+    profileChanged && factor > 1.02
+      ? `transferencia x${factor.toFixed(2)}`
+      : "";
+
+  return {
+    factor,
+    transferSuggestedWeightKg,
+    label,
+  };
+}
+
+function formatEditableWeight(value) {
+  return Number.isFinite(value) ? formatWeight(value) : "";
+}
+
+function weightTypeLabel(loadMode) {
+  return LOAD_MODE_OPTIONS.find((option) => option.id === loadMode)?.label || LOAD_MODE_OPTIONS[0].label;
+}
+
+function unitOverrideLabel(unitOverride) {
+  if (!unitOverride) {
+    return `Global (${normalizeWeightUnit(state.preferences.weightUnit)})`;
+  }
+  return normalizeWeightUnit(unitOverride);
+}
+
+function bodyWeightDisplayValue() {
+  return displayedWeightFromStoredKg(state.preferences.bodyWeightKg, state.preferences.weightUnit);
+}
+
+function bodyWeightInputBounds(unit) {
+  if (normalizeWeightUnit(unit) === "lb") {
+    return { min: 77, max: 485, step: 1 };
+  }
+  return { min: 35, max: 220, step: 0.5 };
+}
+
+function convertPlanInputWeightForProfiles(exerciseId, fromProfile, toProfile) {
+  const rawWeight = state.planInputs[exerciseId]?.weight;
+  if (rawWeight === undefined || rawWeight === "") {
+    return;
+  }
+
+  const numericWeight = Number(rawWeight);
+  if (!Number.isFinite(numericWeight)) {
+    return;
+  }
+
+  state.planInputs[exerciseId].weight = formatEditableWeight(
+    convertDisplayedLoad(findPlanExerciseById(exerciseId)?.exercise || { equipment: [] }, numericWeight, fromProfile, toProfile)
+  );
+}
+
+function syncPlanInputWeightsForGlobalUnitChange(previousUnit, nextUnit) {
+  for (const block of state.plan?.blocks || []) {
+    for (const entry of block.exercises) {
+      const storedProfile = state.equipmentProfiles[exerciseProfileKey(entry.exercise)] || {};
+      if (storedProfile.unitOverride) {
+        continue;
+      }
+
+      const beforeProfile = materializeEquipmentProfile(entry.exercise, storedProfile, previousUnit);
+      const afterProfile = materializeEquipmentProfile(entry.exercise, storedProfile, nextUnit);
+      convertPlanInputWeightForProfiles(entry.id, beforeProfile, afterProfile);
+    }
+  }
+}
+
+function resolvePlanExercise(entry) {
+  const equipmentProfile = exerciseEquipmentProfile(entry.exercise);
+  const weightUnit = resolvedExerciseWeightUnit(entry.exercise, equipmentProfile);
+  const intensity = inferIntensity(entry.exercise);
+  const progression = makeProgression(
+    entry.exercise,
+    performanceSnapshotForItem(entry.exercise, state.performanceBySlug),
+    entry.repsText,
+    state.preferences.goal,
+    intensity,
+    state.preferences,
+    equipmentProfile
+  );
+
+  return {
+    ...entry,
+    equipmentProfile,
+    weightUnit,
+    suggestedWeightKg: progression.suggestedWeightKg,
+    progressionNote: progression.note,
+  };
+}
+
+function estimateBaselineLoad(item, preferences, repsText, goal, intensity, equipmentProfile = exerciseEquipmentProfile(item)) {
+  const blob = normalize([item.name, item.displayName, item.slug, item.equipment.join(" ")].join(" "));
+  const weightUnit = resolvedExerciseWeightUnit(item, equipmentProfile);
+  if (isWeightedVariation(item)) {
+    return {
+      suggestedWeightKg: roundToNearest(
+        displayedWeightFromStoredKg(5, weightUnit),
+        suggestedWeightStep(item, weightUnit)
+      ),
+      note: "Empieza con lastre ligero.",
+      machineAdjustmentLabel: "",
+    };
+  }
+
+  const equipmentClass = inferEquipmentClass(item);
+  const pattern = inferLoadPattern(item);
+  if (!pattern || pattern.ratio == null || equipmentClass === "conditioning") {
+    return {
+      suggestedWeightKg: null,
+      note: equipmentClass === "conditioning" ? "Guiate por ritmo y esfuerzo." : "",
+      machineAdjustmentLabel: "",
+    };
+  }
+
+  if (equipmentClass === "bodyweight" && !isWeightedVariation(item)) {
+    return {
+      suggestedWeightKg: null,
+      note: "Movimiento libre; registra lastre solo si lo usas.",
+      machineAdjustmentLabel: "",
+    };
+  }
+
+  const bodyWeightKg = Math.min(220, Math.max(35, Number(preferences.bodyWeightKg || DEFAULT_PREFERENCES.bodyWeightKg)));
+  const experienceFactor = EXPERIENCE_LOAD_FACTORS[preferences.experienceLevel] || 1;
+  const strategyFactor = LOAD_STRATEGY_FACTORS[preferences.loadStrategy] || 1;
+  const goalFactor = GOAL_LOAD_FACTORS[goal] || 1;
+  const range = parseRepRange(repsText);
+  const repFactor = repRangeLoadFactor(range);
+  const intensityFactor = intensity === "heavy" ? 1.04 : intensity === "moderate" ? 1 : 0.86;
+  const brand = machineBrandProfile(equipmentProfile.brandId);
+  const referenceLoad =
+    bodyWeightKg * pattern.ratio * experienceFactor * strategyFactor * goalFactor * repFactor * intensityFactor;
+  const suggestedWeightKg = convertDisplayedLoad(
+    item,
+    Math.max(pattern.minKg, referenceLoad),
+    { brandId: "generic", label: "Generica", loadMode: defaultLoadModeForItem(item) },
+    equipmentProfile
+  );
+  const machineAdjustmentLabel =
+    machineBrandFactor(item, equipmentProfile) !== 1 && isMachineAdjustable(item)
+      ? `${brand.label} ${signedPercent((machineBrandFactor(item, equipmentProfile) - 1) * 100)}`
+      : "";
+  const profileWeightDisplay = displayedWeightFromStoredKg(bodyWeightKg, state.preferences.weightUnit);
+
+  return {
+    suggestedWeightKg,
+    note: [
+      `Base ${formatWeightWithUnit(suggestedWeightKg, weightUnit)}`,
+      `${formatWeightWithUnit(profileWeightDisplay, state.preferences.weightUnit)} corporal`,
+      machineAdjustmentLabel,
+    ]
+      .filter(Boolean)
+      .join(" • "),
+    machineAdjustmentLabel,
+  };
 }
 
 function inferIntensity(item) {
@@ -928,13 +1755,17 @@ function fatigueLabel(penalty) {
   return "alta";
 }
 
-function rationale(goal, split, focus, durationMinutes, equipmentCount, fatigue) {
-  return `Sugerencia generada por objetivo (${goal}), division (${split}), enfoque de hoy (${focus}), duracion objetivo (${durationMinutes} min), equipo disponible (${equipmentCount} opciones) y fatiga estimada (${fatigueLabel(fatigue)}).`;
+function rationale(preferences, focus, durationMinutes, fatigue) {
+  return [focus, `${durationMinutes} min`, `fatiga ${fatigueLabel(fatigue)}`].filter(Boolean).join(" • ");
 }
 
 function completeCurrentPlan() {
   if (!state.plan) {
     return;
+  }
+
+  if (state.restTimer.active) {
+    completeRestTimer(true);
   }
 
   const completedAt = new Date();
@@ -952,6 +1783,8 @@ function completeCurrentPlan() {
 
   for (const block of state.plan.blocks) {
     for (const exercise of block.exercises) {
+      const resolvedExercise = resolvePlanExercise(exercise);
+      const equipmentProfile = resolvedExercise.equipmentProfile;
       const snapshotKey = normalize(exercise.exercise.slug);
       const previous = state.performanceBySlug[snapshotKey] || {
         id: snapshotKey,
@@ -961,20 +1794,44 @@ function completeCurrentPlan() {
         bestWeightKg: 0,
         lastReps: 0,
         sessionsCount: 0,
+        firstReferenceWeightKg: 0,
+        lastReferenceWeightKg: 0,
+        bestReferenceWeightKg: 0,
         updatedAt: completedAt.toISOString(),
       };
 
       const input = state.planInputs[exercise.id] || {};
       const parsedRange = parseRepRange(exercise.repsText);
       const defaultReps = parsedRange ? parsedRange.max : Number(previous.lastReps || 0);
-      const weight =
+      const previousProfile = equipmentProfileFromSnapshot(previous, exercise.exercise);
+      const displayedWeight =
         input.weight === "" || input.weight === undefined
-          ? Number(exercise.suggestedWeightKg ?? previous.lastWeightKg ?? 0)
+          ? Number(
+              resolvedExercise.suggestedWeightKg ??
+                convertStoredWeightKgToDisplayed(
+                  exercise.exercise,
+                  Number(previous.lastWeightKg || 0),
+                  previousProfile,
+                  equipmentProfile
+                ) ??
+                0
+            )
           : Number(input.weight);
+      const weight =
+        Number.isFinite(displayedWeight)
+          ? storedWeightKgFromDisplayed(displayedWeight, equipmentProfile.weightUnit)
+          : Number(previous.lastWeightKg || 0);
       const reps =
         input.reps === "" || input.reps === undefined
           ? Number(defaultReps || 0)
           : Number(input.reps);
+      const normalizedWeight = Number.isFinite(weight)
+        ? referenceLoadFromStoredWeightKg(exercise.exercise, weight, equipmentProfile)
+        : Number(previous.lastReferenceWeightKg || 0);
+      const firstReferenceWeightKg =
+        Number(previous.firstReferenceWeightKg || 0) > 0
+          ? Number(previous.firstReferenceWeightKg)
+          : normalizedWeight;
 
       state.performanceBySlug[snapshotKey] = {
         ...previous,
@@ -982,6 +1839,13 @@ function completeCurrentPlan() {
         bestWeightKg: Math.max(previous.bestWeightKg || 0, Number.isFinite(weight) ? weight : 0),
         lastReps: Number.isFinite(reps) ? reps : previous.lastReps,
         sessionsCount: Number(previous.sessionsCount || 0) + 1,
+        firstReferenceWeightKg,
+        lastReferenceWeightKg: normalizedWeight,
+        bestReferenceWeightKg: Math.max(Number(previous.bestReferenceWeightKg || 0), normalizedWeight),
+        machineBrandId: equipmentProfile.brandId,
+        machineLabel: equipmentProfile.label,
+        loadMode: equipmentProfile.loadMode,
+        weightUnit: equipmentProfile.weightUnit,
         updatedAt: completedAt.toISOString(),
       };
     }
@@ -990,13 +1854,14 @@ function completeCurrentPlan() {
   state.planInputs = {};
   persistState();
   regeneratePlan();
-  setToast("Entrenamiento registrado en el navegador.");
+  setToast("Entrenamiento guardado.");
 }
 
 function persistState() {
   localStorage.setItem(STORAGE_KEYS.preferences, JSON.stringify(state.preferences));
   localStorage.setItem(STORAGE_KEYS.history, JSON.stringify(state.history));
   localStorage.setItem(STORAGE_KEYS.performance, JSON.stringify(state.performanceBySlug));
+  localStorage.setItem(STORAGE_KEYS.equipmentProfiles, JSON.stringify(state.equipmentProfiles));
   localStorage.setItem(STORAGE_KEYS.completedRecipes, JSON.stringify(Array.from(state.completedRecipes)));
   localStorage.setItem(STORAGE_KEYS.shoppingList, JSON.stringify(state.shoppingList));
   localStorage.setItem(STORAGE_KEYS.challengeRegistrations, JSON.stringify(state.challengeRegistrations));
@@ -1010,6 +1875,18 @@ function loadStoredPreferences() {
     availableEquipment: Array.isArray(stored.availableEquipment)
       ? stored.availableEquipment
       : DEFAULT_PREFERENCES.availableEquipment,
+    bodyWeightKg: Number.isFinite(Number(stored.bodyWeightKg))
+      ? Math.min(220, Math.max(35, Number(stored.bodyWeightKg)))
+      : DEFAULT_PREFERENCES.bodyWeightKg,
+    weightUnit: WEIGHT_UNIT_OPTIONS.some((option) => option.id === stored.weightUnit)
+      ? stored.weightUnit
+      : DEFAULT_PREFERENCES.weightUnit,
+    experienceLevel: EXPERIENCE_LEVELS.includes(stored.experienceLevel)
+      ? stored.experienceLevel
+      : DEFAULT_PREFERENCES.experienceLevel,
+    loadStrategy: LOAD_STRATEGIES.includes(stored.loadStrategy)
+      ? stored.loadStrategy
+      : DEFAULT_PREFERENCES.loadStrategy,
   };
 }
 
@@ -1023,6 +1900,10 @@ function loadStoredHistory() {
 
 function loadStoredPerformance() {
   return loadStoredObject(STORAGE_KEYS.performance);
+}
+
+function loadStoredEquipmentProfiles() {
+  return loadStoredObject(STORAGE_KEYS.equipmentProfiles);
 }
 
 function loadStoredArray(key) {
@@ -1047,7 +1928,115 @@ function loadStoredObject(key) {
   }
 }
 
+function buildIdleRestTimer() {
+  return {
+    active: false,
+    running: false,
+    remainingSeconds: 0,
+    totalSeconds: 0,
+    exerciseId: null,
+    exerciseName: "",
+  };
+}
+
+function findPlanExerciseById(exerciseId) {
+  for (const block of state.plan?.blocks || []) {
+    const match = block.exercises.find((entry) => entry.id === exerciseId);
+    if (match) {
+      return match;
+    }
+  }
+  return null;
+}
+
+function startRestTimer(seconds, exerciseId, exerciseName) {
+  state.restTimer = {
+    active: true,
+    running: true,
+    remainingSeconds: Math.max(1, Math.round(seconds)),
+    totalSeconds: Math.max(1, Math.round(seconds)),
+    exerciseId,
+    exerciseName,
+  };
+  ensureRestTimerInterval();
+  render();
+}
+
+function ensureRestTimerInterval() {
+  if (restTimerInterval) {
+    return;
+  }
+
+  restTimerInterval = window.setInterval(() => {
+    if (!state.restTimer.active || !state.restTimer.running) {
+      return;
+    }
+
+    if (state.restTimer.remainingSeconds <= 1) {
+      completeRestTimer(false);
+      return;
+    }
+
+    state.restTimer.remainingSeconds -= 1;
+    render();
+  }, 1000);
+}
+
+function toggleRestTimer() {
+  if (!state.restTimer.active) {
+    return;
+  }
+  state.restTimer.running = !state.restTimer.running;
+  render();
+}
+
+function adjustRestTimer(deltaSeconds) {
+  if (!state.restTimer.active) {
+    return;
+  }
+  state.restTimer.remainingSeconds = Math.max(5, state.restTimer.remainingSeconds + Math.round(deltaSeconds));
+  state.restTimer.totalSeconds = Math.max(state.restTimer.totalSeconds, state.restTimer.remainingSeconds);
+  render();
+}
+
+function completeRestTimer(isManual) {
+  const exerciseName = state.restTimer.exerciseName;
+  state.restTimer = buildIdleRestTimer();
+  if (restTimerInterval) {
+    clearInterval(restTimerInterval);
+    restTimerInterval = null;
+  }
+  if (!isManual) {
+    setToast(exerciseName ? `${exerciseName}: descanso completo.` : "Descanso completo.");
+  }
+  render();
+}
+
+function closeOpenSelectPanels(exceptPanel = null) {
+  document.querySelectorAll(".select-panel[open]").forEach((panel) => {
+    if (panel !== exceptPanel) {
+      panel.removeAttribute("open");
+    }
+  });
+}
+
 function handleClick(event) {
+  const activeSelectPanel = event.target.closest(".select-panel");
+  closeOpenSelectPanels(activeSelectPanel);
+
+  const selectOption = event.target.closest("[data-select-id][data-select-value]");
+  if (selectOption) {
+    event.preventDefault();
+    const selectId = selectOption.dataset.selectId;
+    const nextValue = selectOption.dataset.selectValue ?? "";
+    const selectElement = selectId ? document.getElementById(selectId) : null;
+    if (selectElement instanceof HTMLSelectElement) {
+      selectElement.value = nextValue;
+      selectElement.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+    return;
+  }
+
   const target = event.target.closest("[data-action]");
   if (!target) {
     return;
@@ -1105,6 +2094,45 @@ function handleClick(event) {
   if (action === "complete-plan") {
     completeCurrentPlan();
     render();
+    return;
+  }
+
+  if (action === "apply-suggested-load") {
+    const exerciseId = target.dataset.exerciseId;
+    if (!exerciseId) return;
+    const entry = findPlanExerciseById(exerciseId);
+    if (!entry) return;
+    const resolvedEntry = resolvePlanExercise(entry);
+    if (resolvedEntry.suggestedWeightKg == null) return;
+    state.planInputs[exerciseId] = state.planInputs[exerciseId] || {};
+    state.planInputs[exerciseId].weight = formatEditableWeight(resolvedEntry.suggestedWeightKg);
+    render();
+    return;
+  }
+
+  if (action === "start-rest-timer") {
+    const seconds = Number(target.dataset.restSeconds);
+    const exerciseId = target.dataset.exerciseId || null;
+    const exerciseName = target.dataset.exerciseName || "Descanso";
+    if (!Number.isFinite(seconds) || seconds <= 0) return;
+    startRestTimer(seconds, exerciseId, exerciseName);
+    return;
+  }
+
+  if (action === "toggle-rest-timer") {
+    toggleRestTimer();
+    return;
+  }
+
+  if (action === "skip-rest-timer") {
+    completeRestTimer(true);
+    return;
+  }
+
+  if (action === "add-rest-time") {
+    const delta = Number(target.dataset.deltaSeconds || 0);
+    if (!Number.isFinite(delta) || !delta) return;
+    adjustRestTimer(delta);
     return;
   }
 
@@ -1228,9 +2256,83 @@ function handleChange(event) {
     return;
   }
 
+  if (target.matches("[data-pref='bodyWeightKg']")) {
+    const storedWeightKg = storedWeightKgFromDisplayed(
+      Number(target.value) || bodyWeightDisplayValue(),
+      state.preferences.weightUnit
+    );
+    state.preferences.bodyWeightKg = Math.min(220, Math.max(35, storedWeightKg || DEFAULT_PREFERENCES.bodyWeightKg));
+    persistState();
+    regeneratePlan();
+    render();
+    return;
+  }
+
+  if (target.matches("[data-pref='weightUnit']")) {
+    const previousUnit = state.preferences.weightUnit;
+    const nextUnit = WEIGHT_UNIT_OPTIONS.some((option) => option.id === target.value)
+      ? target.value
+      : DEFAULT_PREFERENCES.weightUnit;
+    if (previousUnit !== nextUnit) {
+      syncPlanInputWeightsForGlobalUnitChange(previousUnit, nextUnit);
+    }
+    state.preferences.weightUnit = nextUnit;
+    persistState();
+    regeneratePlan();
+    render();
+    return;
+  }
+
+  if (target.matches("[data-pref='experienceLevel']")) {
+    state.preferences.experienceLevel = EXPERIENCE_LEVELS.includes(target.value)
+      ? target.value
+      : DEFAULT_PREFERENCES.experienceLevel;
+    persistState();
+    regeneratePlan();
+    render();
+    return;
+  }
+
+  if (target.matches("[data-pref='loadStrategy']")) {
+    state.preferences.loadStrategy = LOAD_STRATEGIES.includes(target.value)
+      ? target.value
+      : DEFAULT_PREFERENCES.loadStrategy;
+    persistState();
+    regeneratePlan();
+    render();
+    return;
+  }
+
   if (target.matches("[data-ui='recipeFilter']")) {
     state.ui.recipeFilter = target.value;
     render();
+    return;
+  }
+
+  if (target.matches("[data-ui='selectedFamilyKey']")) {
+    state.ui.selectedFamilyKey = target.value;
+    render();
+    return;
+  }
+
+  if (target.matches("[data-machine-field='label']")) {
+    const exerciseId = target.dataset.exerciseId;
+    if (!exerciseId) return;
+    updateEquipmentProfileForExercise(exerciseId, { label: target.value });
+    return;
+  }
+
+  if (target.matches("[data-machine-field='loadMode']")) {
+    const exerciseId = target.dataset.exerciseId;
+    if (!exerciseId) return;
+    updateEquipmentProfileForExercise(exerciseId, { loadMode: target.value });
+    return;
+  }
+
+  if (target.matches("[data-machine-field='unitOverride']")) {
+    const exerciseId = target.dataset.exerciseId;
+    if (!exerciseId) return;
+    updateEquipmentProfileForExercise(exerciseId, { unitOverride: target.value || null });
     return;
   }
 }
@@ -1288,24 +2390,96 @@ function render() {
   appRoot.innerHTML = `
     <div class="app-shell">
       ${renderHeader(stats)}
+      ${renderMobileDock()}
       <main class="view-shell">
         ${state.error ? renderErrorBanner(state.error) : ""}
         ${state.loading ? renderLoading() : renderCurrentView(stats)}
       </main>
-      ${renderMobileDock()}
     </div>
-    ${state.ui.toast ? `<div class="toast" role="status" aria-live="polite">${escapeHtml(state.ui.toast)}</div>` : ""}
+    ${renderRestTimer()}
+    ${state.ui.toast ? `<div class="toast ${state.restTimer.active ? "is-elevated" : ""}" role="status" aria-live="polite">${escapeHtml(state.ui.toast)}</div>` : ""}
   `;
 }
 
 function renderBrandMark() {
   return `
     <div class="brand-mark" aria-hidden="true">
-      <span class="brand-mark-core">
-        <img class="brand-mark-image" src="./assets/xibapp-logo-mark.png" alt="" />
+      <span class="brand-mark-base">
+        <span class="brand-mark-solid"></span>
+        <span class="brand-mark-grecas"></span>
       </span>
     </div>
   `;
+}
+
+function renderViewIcon(viewId) {
+  switch (viewId) {
+    case "dashboard":
+      return `
+        <svg class="view-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 18h12" />
+          <path d="M8 18v-2.6h2V13h4v2.4h2V18" />
+          <path d="M7 10.8 12 6l5 4.8" />
+          <path d="M9 18v-2.1h6V18" />
+          <path d="M12 3.4v1.8" />
+          <path d="M9.4 5.2h5.2" />
+        </svg>
+      `;
+    case "training":
+      return `
+        <svg class="view-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4.2 10h1.7v4H4.2z" />
+          <path d="M6.1 8.7h1.6v6.6H6.1z" />
+          <path d="M16.3 8.7h1.6v6.6h-1.6z" />
+          <path d="M18.1 10h1.7v4h-1.7z" />
+          <path d="M7.7 12h8.6" />
+          <circle cx="12" cy="12" r="1.45" />
+          <path d="M10.5 9.2h3M10.5 14.8h3" />
+        </svg>
+      `;
+    case "explorer":
+      return `
+        <svg class="view-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M4.5 12c2-3.1 4.6-4.8 7.5-4.8s5.5 1.7 7.5 4.8c-2 3.1-4.6 4.8-7.5 4.8S6.5 15.1 4.5 12Z" />
+          <circle cx="12" cy="12" r="1.55" />
+          <path d="M12 4.3v1.8M12 17.9v1.8M4.3 12h1.8M17.9 12h1.8" />
+          <path d="M9.2 9.2 12 12l2.8-2.8" />
+        </svg>
+      `;
+    case "nutrition":
+      return `
+        <svg class="view-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5.1 16.8c1.8 1 4.2 1.5 6.9 1.5s5.1-.5 6.9-1.5" />
+          <path d="M7.3 15.3c.5-4 2.1-7.1 4.7-9.2 2.6 2.1 4.2 5.2 4.7 9.2" />
+          <path d="M12 7.1v7.5" />
+          <path d="M9.7 9.2c.9.6 1.7 1.6 2.3 2.8" />
+          <path d="M14.3 9.2c-.9.6-1.7 1.6-2.3 2.8" />
+          <path d="M18.1 5.4v1.8M17.2 6.3H19" />
+        </svg>
+      `;
+    case "challenges":
+      return `
+        <svg class="view-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M5 18.5h14" />
+          <path d="M7 18.5v-2.1h2.1V14h2.1v-2.3h1.6V14H15v2.4h2v2.1" />
+          <path d="M10.4 9.5h3.2M10.4 7.3h3.2" />
+          <path d="M12 11.7v6.8" />
+          <path d="M12 4.9v1.2M8.4 10.8h7.2" />
+        </svg>
+      `;
+    case "progress":
+      return `
+        <svg class="view-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6 19h12" />
+          <path d="M7.6 16v-4.4M12 16V9M16.4 16v-6.8" />
+          <path d="M7.6 11.6 12 7l4.4 2" />
+          <path d="M10 4.8h4" />
+          <path d="M10 19v-3h4v3" />
+        </svg>
+      `;
+    default:
+      return "";
+  }
 }
 
 function renderHeader(stats) {
@@ -1315,9 +2489,7 @@ function renderHeader(stats) {
         <div class="brand-line">
           ${renderBrandMark()}
           <div class="brand-copy">
-            <p class="eyebrow">Browser Ready</p>
-            <h1>XibApp Web</h1>
-            <p>Entrenamiento, explorador tecnico, nutricion y progreso directo en GitHub Pages.</p>
+            <h1>XibApp</h1>
           </div>
         </div>
         <div class="status-cluster">
@@ -1329,7 +2501,14 @@ function renderHeader(stats) {
       <nav class="nav-strip" aria-label="Navegacion principal">
         ${VIEW_OPTIONS.map(
           (option) => `
-            <button class="nav-pill ${state.view === option.id ? "is-active" : ""}" data-action="set-view" data-view="${option.id}">
+            <button
+              class="nav-pill ${state.view === option.id ? "is-active" : ""}"
+              data-action="set-view"
+              data-view="${option.id}"
+              aria-label="${escapeAttribute(option.label)}"
+              title="${escapeAttribute(option.label)}"
+            >
+              <span class="nav-pill-icon" aria-hidden="true">${renderViewIcon(option.id)}</span>
               <span class="nav-pill-kicker">${escapeHtml(option.kicker)}</span>
               <span class="nav-pill-label">${escapeHtml(option.label)}</span>
             </button>
@@ -1345,9 +2524,17 @@ function renderMobileDock() {
     <nav class="mobile-dock" aria-label="Accesos moviles">
       ${VIEW_OPTIONS.map(
         (option) => `
-          <button class="mobile-dock-pill ${state.view === option.id ? "is-active" : ""}" data-action="set-view" data-view="${option.id}">
-            <span class="mobile-dock-kicker">${escapeHtml(option.kicker)}</span>
-            <span class="mobile-dock-label">${escapeHtml(option.shortLabel)}</span>
+          <button
+            class="mobile-dock-pill ${state.view === option.id ? "is-active" : ""}"
+            data-action="set-view"
+            data-view="${option.id}"
+            aria-label="${escapeAttribute(option.label)}"
+            title="${escapeAttribute(option.label)}"
+            ${state.view === option.id ? `aria-current="page"` : ""}
+          >
+            <span class="mobile-dock-icon" aria-hidden="true">${renderViewIcon(option.id)}</span>
+            <span class="mobile-dock-label" aria-hidden="true">${escapeHtml(option.label)}</span>
+            <span class="sr-only">${escapeHtml(option.label)}</span>
           </button>
         `
       ).join("")}
@@ -1374,11 +2561,43 @@ function renderLoading() {
         <div class="brand-lockup">
           ${renderBrandMark()}
           <div>
-            <p class="eyebrow">Inicializando</p>
-            <h1>XibApp Web</h1>
+            <h1>XibApp</h1>
           </div>
         </div>
-        <p class="boot-copy">Preparando catalogo de ejercicios, recetas y modulos persistidos.</p>
+        <p class="boot-copy">Cargando...</p>
+      </div>
+    </section>
+  `;
+}
+
+function renderRestTimer() {
+  if (!state.restTimer.active || !state.restTimer.totalSeconds) {
+    return "";
+  }
+
+  const progress = Math.max(
+    0,
+    Math.min(100, Math.round((state.restTimer.remainingSeconds / state.restTimer.totalSeconds) * 100))
+  );
+
+  return `
+    <section class="rest-timer-tray ${state.restTimer.running ? "is-running" : "is-paused"}" aria-live="polite">
+      <div class="rest-timer-top">
+        <div>
+          <span class="timer-label">${state.restTimer.running ? "Descanso activo" : "Descanso pausado"}</span>
+          <h3>${escapeHtml(state.restTimer.exerciseName || "Descanso")}</h3>
+        </div>
+        <div class="rest-timer-clock">${formatClock(state.restTimer.remainingSeconds)}</div>
+      </div>
+      <div class="rest-timer-progress" aria-hidden="true">
+        <span style="width:${progress}%"></span>
+      </div>
+      <div class="timer-controls">
+        <button class="secondary-button" data-action="toggle-rest-timer">
+          ${state.restTimer.running ? "Pausar" : "Reanudar"}
+        </button>
+        <button class="ghost-button" data-action="add-rest-time" data-delta-seconds="15">+15s</button>
+        <button class="ghost-button" data-action="skip-rest-timer">Terminar</button>
       </div>
     </section>
   `;
@@ -1406,24 +2625,14 @@ function renderDashboardView(stats) {
     <section class="section-stack">
       <div class="hero-grid">
         <article class="glass-panel hero-copy">
-          <p class="eyebrow">Native logic, browser workflow</p>
-          <h1>Tu app fitness ahora vive dentro del navegador.</h1>
-          <p>
-            Esta version web toma los datos reales del proyecto iOS y los vuelve una experiencia
-            interactiva para entrenamiento sugerido, exploracion tecnica, nutricion y seguimiento local.
-          </p>
-          <div class="hero-actions">
-            <button class="action-button" data-action="jump-training">Generar entrenamiento</button>
-            <button class="secondary-button" data-action="jump-explorer">Explorar ejercicios</button>
-            <button class="ghost-button" data-action="jump-nutrition">Abrir nutricion</button>
-          </div>
+          <h1>Todo listo para hoy.</h1>
         </article>
         <aside class="summary-card hero-note">
           <div class="panel-title">
             <h3>Estado de hoy</h3>
             <span class="chip is-jade">${escapeHtml(state.plan?.focus || "Sin plan")}</span>
           </div>
-          <p>${escapeHtml(state.plan?.rationale || "Configura tus preferencias para generar un plan de entrenamiento.")}</p>
+          <p>${escapeHtml(state.plan?.rationale || "Genera tu plan.")}</p>
           <div class="meta-strip">
             <span class="chip">${stats.weeklySessions} sesiones / 7 dias</span>
             <span class="chip is-gold">${stats.streakDays} dias de racha</span>
@@ -1454,8 +2663,7 @@ function renderDashboardView(stats) {
         <section class="panel-card">
           <div class="view-header">
             <div>
-              <h2>Resumen rapido</h2>
-              <p>Lo mas util para arrancar sin cambiar de modulo.</p>
+              <h2>Resumen</h2>
             </div>
           </div>
           <div class="metrics-grid">
@@ -1510,7 +2718,6 @@ function renderDashboardView(stats) {
                 <button class="ghost-button" data-action="jump-progress">Ver progreso</button>
               </div>
             </div>
-            <p>${escapeHtml(state.plan?.subtitle || "Crea tu primer plan con los modulos de entrenamiento y progreso.")}</p>
             <div class="meta-strip">
               <span class="chip is-jade">${escapeHtml(state.preferences.goal)}</span>
               <span class="chip">${escapeHtml(state.preferences.split)}</span>
@@ -1525,12 +2732,12 @@ function renderDashboardView(stats) {
 }
 
 function renderTrainingView() {
+  const bodyWeightBounds = bodyWeightInputBounds(state.preferences.weightUnit);
   return `
     <section class="section-stack">
       <div class="view-header">
         <div>
-          <h2>Entrenamiento en navegador</h2>
-          <p>La recomendacion usa la misma logica de foco, equipo, fatiga y progresion que ya existe en la app.</p>
+          <h2>Entrenamiento</h2>
         </div>
         <div class="meta-strip">
           <span class="chip is-jade">${escapeHtml(state.preferences.goal)}</span>
@@ -1540,27 +2747,56 @@ function renderTrainingView() {
       </div>
 
       <div class="content-grid">
-        <aside class="panel-card">
+        <aside class="panel-card training-config">
           <div class="panel-title">
             <h3>Preferencias</h3>
             <span class="chip">${state.preferences.availableEquipment.length} equipos</span>
           </div>
           <div class="field-grid">
+            <div class="split-field-grid">
+              <div class="field-group">
+                <label for="bodyweight-input">Peso corporal (${state.preferences.weightUnit})</label>
+                <input
+                  id="bodyweight-input"
+                  class="number-input"
+                  type="number"
+                  min="${bodyWeightBounds.min}"
+                  max="${bodyWeightBounds.max}"
+                  step="${bodyWeightBounds.step}"
+                  value="${escapeAttribute(formatEditableWeight(bodyWeightDisplayValue()))}"
+                  data-pref="bodyWeightKg"
+                />
+              </div>
+              <div class="field-group">
+                <label for="experience-select">Nivel</label>
+                ${renderSelectInput({
+                  id: "experience-select",
+                  value: state.preferences.experienceLevel,
+                  options: EXPERIENCE_LEVELS.map((level) => ({ value: level, label: level })),
+                  dataAttributes: { pref: "experienceLevel" },
+                  menuLabel: "Nivel",
+                })}
+              </div>
+            </div>
             <div class="field-group">
               <label for="goal-select">Objetivo</label>
-              <select id="goal-select" class="select-input" data-pref="goal">
-                ${GOALS.map(
-                  (goal) => `<option value="${escapeHtml(goal)}" ${goal === state.preferences.goal ? "selected" : ""}>${escapeHtml(goal)}</option>`
-                ).join("")}
-              </select>
+              ${renderSelectInput({
+                id: "goal-select",
+                value: state.preferences.goal,
+                options: GOALS.map((goal) => ({ value: goal, label: goal })),
+                dataAttributes: { pref: "goal" },
+                menuLabel: "Objetivo",
+              })}
             </div>
             <div class="field-group">
               <label for="split-select">Division</label>
-              <select id="split-select" class="select-input" data-pref="split">
-                ${SPLITS.map(
-                  (split) => `<option value="${escapeHtml(split)}" ${split === state.preferences.split ? "selected" : ""}>${escapeHtml(split)}</option>`
-                ).join("")}
-              </select>
+              ${renderSelectInput({
+                id: "split-select",
+                value: state.preferences.split,
+                options: SPLITS.map((split) => ({ value: split, label: split })),
+                dataAttributes: { pref: "split" },
+                menuLabel: "Division",
+              })}
             </div>
             <div class="field-group">
               <label for="duration-range">Duracion de sesion</label>
@@ -1576,6 +2812,28 @@ function renderTrainingView() {
                   data-pref="duration"
                 />
                 <span class="range-badge">${state.preferences.sessionDurationMinutes} min</span>
+              </div>
+            </div>
+            <div class="split-field-grid">
+              <div class="field-group">
+                <label for="strategy-select">Carga</label>
+                ${renderSelectInput({
+                  id: "strategy-select",
+                  value: state.preferences.loadStrategy,
+                  options: LOAD_STRATEGIES.map((strategy) => ({ value: strategy, label: strategy })),
+                  dataAttributes: { pref: "loadStrategy" },
+                  menuLabel: "Carga",
+                })}
+              </div>
+              <div class="field-group">
+                <label for="weight-unit-select">Unidad global</label>
+                ${renderSelectInput({
+                  id: "weight-unit-select",
+                  value: state.preferences.weightUnit,
+                  options: WEIGHT_UNIT_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
+                  dataAttributes: { pref: "weightUnit" },
+                  menuLabel: "Unidad global",
+                })}
               </div>
             </div>
             <div class="field-group">
@@ -1598,7 +2856,7 @@ function renderTrainingView() {
           </div>
         </aside>
 
-        <section class="plan-shell">
+        <section class="plan-shell training-plan">
           <article class="plan-overview panel-card">
             <div class="plan-title-row">
               <div>
@@ -1608,14 +2866,79 @@ function renderTrainingView() {
               <div class="meta-strip">
                 <span class="chip is-jade">${escapeHtml(state.plan?.focus || "-")}</span>
                 <span class="chip is-gold">${state.plan?.estimatedMinutes || state.preferences.sessionDurationMinutes} min</span>
+                <span class="chip">${formatWeightWithUnit(bodyWeightDisplayValue(), state.preferences.weightUnit)}</span>
+                <span class="chip">${escapeHtml(state.preferences.experienceLevel)}</span>
               </div>
             </div>
-            <p>${escapeHtml(state.plan?.rationale || "Ajusta tus preferencias para crear un plan.")}</p>
+            <p>${escapeHtml(state.plan?.rationale || "Ajusta tu perfil.")}</p>
           </article>
+          ${renderMachineProfileDatalist()}
           ${renderPlanBlocks(false)}
         </section>
       </div>
     </section>
+  `;
+}
+
+function renderMachineProfileDatalist() {
+  return `
+    <datalist id="machine-profile-list">
+      ${MACHINE_BRAND_OPTIONS.map((option) => `<option value="${escapeAttribute(option.label)}"></option>`).join("")}
+    </datalist>
+  `;
+}
+
+function renderSelectInput({ id, value, options, dataAttributes = {}, menuLabel = "" }) {
+  const normalizedValue = String(value ?? "");
+  const normalizedOptions = options.map((option) => ({
+    value: String(option.value ?? ""),
+    label: String(option.label ?? option.value ?? ""),
+  }));
+  const selectedOption =
+    normalizedOptions.find((option) => option.value === normalizedValue) ||
+    normalizedOptions[0] || {
+      value: "",
+      label: "Seleccionar",
+    };
+  const dataAttributeString = Object.entries(dataAttributes)
+    .map(([key, attributeValue]) => `data-${key}="${escapeAttribute(attributeValue)}"`)
+    .join(" ");
+
+  return `
+    <div class="select-shell">
+      <select id="${escapeAttribute(id)}" class="select-input select-input-native" ${dataAttributeString}>
+        ${normalizedOptions
+          .map(
+            (option) =>
+              `<option value="${escapeAttribute(option.value)}" ${option.value === selectedOption.value ? "selected" : ""}>${escapeHtml(option.label)}</option>`
+          )
+          .join("")}
+      </select>
+      <details class="select-panel">
+        <summary class="select-trigger" aria-haspopup="listbox" aria-label="${escapeAttribute(menuLabel || selectedOption.label)}">
+          <span class="select-trigger-value">${escapeHtml(selectedOption.label)}</span>
+          <span class="select-trigger-caret" aria-hidden="true"></span>
+        </summary>
+        <div class="select-menu" role="listbox" aria-label="${escapeAttribute(menuLabel || id)}">
+          ${normalizedOptions
+            .map(
+              (option) => `
+                <button
+                  type="button"
+                  class="select-option ${option.value === selectedOption.value ? "is-selected" : ""}"
+                  data-select-id="${escapeAttribute(id)}"
+                  data-select-value="${escapeAttribute(option.value)}"
+                  role="option"
+                  aria-selected="${option.value === selectedOption.value ? "true" : "false"}"
+                >
+                  <span class="select-option-copy">${escapeHtml(option.label)}</span>
+                </button>
+              `
+            )
+            .join("")}
+        </div>
+      </details>
+    </div>
   `;
 }
 
@@ -1649,6 +2972,9 @@ function renderPlanBlocks(compact) {
 }
 
 function renderPlanExerciseCard(entry, compact) {
+  const resolvedEntry = resolvePlanExercise(entry);
+  const equipmentProfile = resolvedEntry.equipmentProfile;
+  const weightUnit = resolvedEntry.weightUnit;
   const input = state.planInputs[entry.id] || {};
   return `
     <article class="exercise-card">
@@ -1660,27 +2986,94 @@ function renderPlanExerciseCard(entry, compact) {
         <span class="family-count">${escapeHtml(entry.exercise.equipment.join(", ") || "Equipo libre")}</span>
       </div>
       <div class="exercise-meta-grid">
-        <div class="mini-stat"><span class="label">Series</span><span class="value">${entry.sets}</span></div>
-        <div class="mini-stat"><span class="label">Reps</span><span class="value">${escapeHtml(entry.repsText)}</span></div>
-        <div class="mini-stat"><span class="label">Descanso</span><span class="value">${entry.restSeconds}s</span></div>
-        <div class="mini-stat"><span class="label">Carga sugerida</span><span class="value">${entry.suggestedWeightKg != null ? `${formatWeight(entry.suggestedWeightKg)} kg` : "-"}</span></div>
+        <div class="mini-stat"><span class="label">Series</span><span class="value">${resolvedEntry.sets}</span></div>
+        <div class="mini-stat"><span class="label">Reps</span><span class="value">${escapeHtml(resolvedEntry.repsText)}</span></div>
+        <div class="mini-stat"><span class="label">Descanso</span><span class="value">${resolvedEntry.restSeconds}s</span></div>
+        <div class="mini-stat"><span class="label">Carga sugerida</span><span class="value">${resolvedEntry.suggestedWeightKg != null ? formatWeightWithUnit(resolvedEntry.suggestedWeightKg, weightUnit) : "-"}</span></div>
       </div>
       <div class="exercise-prescription">
-        <p class="small-copy">${escapeHtml(entry.notes)}</p>
-        <p class="small-copy">${escapeHtml(entry.progressionNote)}</p>
+        <p class="small-copy">${escapeHtml(resolvedEntry.notes)}</p>
+        <p class="small-copy">${escapeHtml(resolvedEntry.progressionNote)}</p>
       </div>
       ${
         compact
           ? ""
           : `
+            ${
+              isMachineAdjustable(entry.exercise)
+                ? `
+                  <div class="machine-config-card">
+                    <div class="machine-config-grid">
+                      <div class="field-group">
+                        <label for="machine-label-${entry.id}">Equipo / identificador</label>
+                        <input
+                          id="machine-label-${entry.id}"
+                          class="text-input"
+                          type="text"
+                          list="machine-profile-list"
+                          value="${escapeAttribute(equipmentProfile.label)}"
+                          placeholder="Technogym, Hammer Strength, generica..."
+                          data-machine-field="label"
+                          data-exercise-id="${entry.id}"
+                        />
+                      </div>
+                      ${
+                        supportsWeightTypeSelection(entry.exercise)
+                          ? `
+                            <div class="field-group">
+                              <label for="machine-mode-${entry.id}">Tipo de peso</label>
+                              ${renderSelectInput({
+                                id: `machine-mode-${entry.id}`,
+                                value: equipmentProfile.loadMode,
+                                options: LOAD_MODE_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
+                                dataAttributes: {
+                                  "machine-field": "loadMode",
+                                  "exercise-id": entry.id,
+                                },
+                                menuLabel: "Tipo de peso",
+                              })}
+                            </div>
+                          `
+                          : ""
+                      }
+                      <div class="field-group">
+                        <label for="machine-unit-${entry.id}">Unidad</label>
+                        ${renderSelectInput({
+                          id: `machine-unit-${entry.id}`,
+                          value: equipmentProfile.unitOverride || "",
+                          options: [
+                            { value: "", label: `Global (${state.preferences.weightUnit})` },
+                            ...WEIGHT_UNIT_OPTIONS.map((option) => ({ value: option.id, label: option.label })),
+                          ],
+                          dataAttributes: {
+                            "machine-field": "unitOverride",
+                            "exercise-id": entry.id,
+                          },
+                          menuLabel: "Unidad",
+                        })}
+                      </div>
+                    </div>
+                    <div class="machine-profile-note">
+                      <span class="chip">${escapeHtml(machineBrandProfile(equipmentProfile.brandId).label)}</span>
+                      ${
+                        supportsWeightTypeSelection(entry.exercise)
+                          ? `<span class="chip is-gold">${escapeHtml(weightTypeLabel(equipmentProfile.loadMode))}</span>`
+                          : ""
+                      }
+                      <span class="chip">${escapeHtml(unitOverrideLabel(equipmentProfile.unitOverride))}</span>
+                    </div>
+                  </div>
+                `
+                : ""
+            }
             <div class="inline-form-grid">
               <div class="field-group">
-                <label for="weight-${entry.id}">Peso real (kg)</label>
+                <label for="weight-${entry.id}">Peso real (${weightUnit})</label>
                 <input
                   id="weight-${entry.id}"
                   class="number-input"
                   type="number"
-                  step="0.5"
+                  step="${suggestedWeightStep(entry.exercise, weightUnit)}"
                   min="0"
                   value="${escapeAttribute(input.weight ?? "")}"
                   data-plan-field="weight"
@@ -1700,6 +3093,25 @@ function renderPlanExerciseCard(entry, compact) {
                   data-exercise-id="${entry.id}"
                 />
               </div>
+            </div>
+            <div class="exercise-action-row">
+              <button
+                class="secondary-button"
+                data-action="apply-suggested-load"
+                data-exercise-id="${entry.id}"
+                ${resolvedEntry.suggestedWeightKg == null ? "disabled" : ""}
+              >
+                Usar sugerida
+              </button>
+              <button
+                class="ghost-button"
+                data-action="start-rest-timer"
+                data-rest-seconds="${resolvedEntry.restSeconds}"
+                data-exercise-id="${entry.id}"
+                data-exercise-name="${escapeAttribute(entry.exercise.displayName)}"
+              >
+                Descanso ${resolvedEntry.restSeconds}s
+              </button>
             </div>
           `
       }
@@ -1724,8 +3136,7 @@ function renderExplorerView() {
     <section class="section-stack">
       <div class="view-header">
         <div>
-          <h2>Explorador de ejercicios</h2>
-          <p>Busqueda por familias de movimiento, con variantes, tecnicas y grupos musculares del catalogo local.</p>
+          <h2>Ejercicios</h2>
         </div>
         <div class="meta-strip">
           <span class="chip is-jade">${filteredFamilies.length} familias visibles</span>
@@ -1734,7 +3145,7 @@ function renderExplorerView() {
       </div>
 
       <div class="exercise-grid">
-        <section class="panel-card">
+        <section class="panel-card explorer-list-panel">
           <div class="field-group">
             <label for="exercise-query">Buscar ejercicio</label>
             <input
@@ -1772,14 +3183,26 @@ function renderExplorerView() {
           </div>
         </section>
 
-        <section class="exercise-detail panel-card">
+        <section class="exercise-detail panel-card explorer-detail-panel">
           ${
             selectedFamily
               ? `
+                <div class="field-group explorer-picker">
+                  <label for="family-select">Cambiar familia</label>
+                  ${renderSelectInput({
+                    id: "family-select",
+                    value: selectedFamily.key,
+                    options: filteredFamilies.map((family) => ({
+                      value: family.key,
+                      label: `${family.displayName} (${family.variantCount})`,
+                    })),
+                    dataAttributes: { ui: "selectedFamilyKey" },
+                    menuLabel: "Cambiar familia",
+                  })}
+                </div>
                 <div class="view-header">
                   <div>
                     <h2>${escapeHtml(selectedFamily.displayName)}</h2>
-                    <p>${escapeHtml(`Variantes tecnicas para ${selectedFamily.muscles.slice(0, 2).join(" y ") || "distintos grupos musculares"}.`)}</p>
                   </div>
                   <div class="meta-strip">
                     <span class="chip is-jade">${selectedFamily.variantCount} variantes</span>
@@ -1865,8 +3288,7 @@ function renderNutritionView() {
     <section class="section-stack">
       <div class="view-header">
         <div>
-          <h2>Nutricion aplicada</h2>
-          <p>Recetas reales del proyecto con checklist, acumulado de macros y lista de compras persistida.</p>
+          <h2>Nutricion</h2>
         </div>
         <div class="button-row">
           <button class="secondary-button" data-action="add-day-ingredients">Agregar menu completo a compras</button>
@@ -1878,12 +3300,16 @@ function renderNutritionView() {
         <section class="panel-card">
           <div class="panel-title">
             <h3>Consumo del dia</h3>
-            <select class="select-input" data-ui="recipeFilter">
-              <option value="all" ${state.ui.recipeFilter === "all" ? "selected" : ""}>Todas las comidas</option>
-              ${MEAL_ORDER.map(
-                (meal) => `<option value="${meal.key}" ${state.ui.recipeFilter === meal.key ? "selected" : ""}>${escapeHtml(meal.label)}</option>`
-              ).join("")}
-            </select>
+            ${renderSelectInput({
+              id: "recipe-filter-select",
+              value: state.ui.recipeFilter,
+              options: [
+                { value: "all", label: "Todas las comidas" },
+                ...MEAL_ORDER.map((meal) => ({ value: meal.key, label: meal.label })),
+              ],
+              dataAttributes: { ui: "recipeFilter" },
+              menuLabel: "Filtrar comidas",
+            })}
           </div>
           <div class="macro-grid">
             ${renderMacroRow("Calorias", consumed.calories, macroTarget.calories, "default")}
@@ -2001,8 +3427,7 @@ function renderChallengesView() {
     <section class="section-stack">
       <div class="view-header">
         <div>
-          <h2>Retos, eventos y promos</h2>
-          <p>Version web de los challenges del proyecto, con registro local para seguir tu participacion.</p>
+          <h2>Retos</h2>
         </div>
         <div class="meta-strip">
           <span class="chip is-jade">${Object.keys(state.challengeRegistrations).length} registrados</span>
@@ -2062,8 +3487,7 @@ function renderProgressView(stats) {
     <section class="section-stack">
       <div class="view-header">
         <div>
-          <h2>Progreso y persistencia</h2>
-          <p>Todo lo que registras aqui queda guardado localmente en tu navegador para seguir el progreso entre visitas.</p>
+          <h2>Progreso</h2>
         </div>
       </div>
 
@@ -2116,6 +3540,7 @@ function renderProgressView(stats) {
           <div class="panel-title">
             <h3>Rendimiento guardado</h3>
             <span class="chip">${Object.keys(state.performanceBySlug).length} ejercicios</span>
+            <span class="chip is-gold">${state.preferences.weightUnit}</span>
           </div>
           ${
             Object.keys(state.performanceBySlug).length
@@ -2139,8 +3564,8 @@ function renderProgressView(stats) {
                           (snapshot) => `
                             <tr>
                               <td>${escapeHtml(snapshot.exerciseSlug)}</td>
-                              <td>${formatWeight(Number(snapshot.lastWeightKg || 0))} kg</td>
-                              <td>${formatWeight(Number(snapshot.bestWeightKg || 0))} kg</td>
+                              <td>${formatWeightWithUnit(displayedWeightFromStoredKg(Number(snapshot.lastWeightKg || 0), state.preferences.weightUnit), state.preferences.weightUnit)}</td>
+                              <td>${formatWeightWithUnit(displayedWeightFromStoredKg(Number(snapshot.bestWeightKg || 0), state.preferences.weightUnit), state.preferences.weightUnit)}</td>
                               <td>${snapshot.lastReps || 0}</td>
                               <td>${snapshot.sessionsCount || 0}</td>
                             </tr>
@@ -2340,4 +3765,10 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatClock(totalSeconds) {
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
 }
