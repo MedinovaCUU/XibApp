@@ -380,8 +380,10 @@ const state = {
 const appRoot = document.querySelector("#app");
 let toastTimer = null;
 let restTimerInterval = null;
+let ignoreNextHashChange = false;
+let queuedViewTransition = Promise.resolve();
 
-window.addEventListener("hashchange", syncViewFromHash);
+window.addEventListener("hashchange", handleHashChange);
 document.addEventListener("click", handleClick);
 document.addEventListener("change", handleChange);
 document.addEventListener("input", handleInput);
@@ -2045,9 +2047,7 @@ function handleClick(event) {
   const { action } = target.dataset;
 
   if (action === "set-view") {
-    state.view = target.dataset.view;
-    syncHashToView();
-    render();
+    navigateToView(target.dataset.view);
     return;
   }
 
@@ -2057,30 +2057,22 @@ function handleClick(event) {
   }
 
   if (action === "jump-training") {
-    state.view = "training";
-    syncHashToView();
-    render();
+    navigateToView("training");
     return;
   }
 
   if (action === "jump-explorer") {
-    state.view = "explorer";
-    syncHashToView();
-    render();
+    navigateToView("explorer");
     return;
   }
 
   if (action === "jump-nutrition") {
-    state.view = "nutrition";
-    syncHashToView();
-    render();
+    navigateToView("nutrition");
     return;
   }
 
   if (action === "jump-progress") {
-    state.view = "progress";
-    syncHashToView();
-    render();
+    navigateToView("progress");
     return;
   }
 
@@ -2380,8 +2372,114 @@ function syncViewFromHash() {
 
 function syncHashToView() {
   if (window.location.hash !== `#${state.view}`) {
+    ignoreNextHashChange = true;
     window.location.hash = state.view;
   }
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function isValidView(viewId) {
+  return VIEW_OPTIONS.some((entry) => entry.id === viewId);
+}
+
+async function runViewTransition(update) {
+  if (typeof update !== "function") {
+    return;
+  }
+
+  if (prefersReducedMotion()) {
+    update();
+    return;
+  }
+
+  if (typeof document.startViewTransition === "function") {
+    const transition = document.startViewTransition(() => {
+      update();
+    });
+
+    try {
+      await transition.finished;
+    } catch (_error) {
+      // Ignore interrupted transitions and leave the latest UI rendered.
+    }
+    return;
+  }
+
+  const currentStage = appRoot.querySelector(".view-stage");
+  if (!(currentStage instanceof HTMLElement) || typeof currentStage.animate !== "function") {
+    update();
+    return;
+  }
+
+  const viewOutFrames = [
+    { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0px)" },
+    { opacity: 0, transform: "translate3d(0, -16px, 0) scale(0.985)", filter: "blur(10px)" },
+  ];
+  const viewInFrames = [
+    { opacity: 0, transform: "translate3d(0, 24px, 0) scale(0.985)", filter: "blur(12px)" },
+    { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0px)" },
+  ];
+  const timing = {
+    duration: 340,
+    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+    fill: "both",
+  };
+
+  try {
+    await currentStage.animate(viewOutFrames, timing).finished;
+  } catch (_error) {
+    // Ignore canceled fallback animations and proceed with the latest view.
+  }
+
+  update();
+
+  const nextStage = appRoot.querySelector(".view-stage");
+  if (!(nextStage instanceof HTMLElement) || typeof nextStage.animate !== "function") {
+    return;
+  }
+
+  nextStage.animate(viewInFrames, timing);
+}
+
+function navigateToView(nextView, { fromHash = false } = {}) {
+  if (!isValidView(nextView) || nextView === state.view) {
+    if (!fromHash && isValidView(nextView)) {
+      syncHashToView();
+    }
+    return queuedViewTransition;
+  }
+
+  queuedViewTransition = queuedViewTransition
+    .catch(() => {})
+    .then(() =>
+      runViewTransition(() => {
+        state.view = nextView;
+        if (!fromHash) {
+          syncHashToView();
+        }
+        render();
+      })
+    );
+
+  return queuedViewTransition;
+}
+
+function handleHashChange() {
+  if (ignoreNextHashChange) {
+    ignoreNextHashChange = false;
+    return;
+  }
+
+  const requested = window.location.hash.replace("#", "");
+  const nextView = isValidView(requested) ? requested : "dashboard";
+  if (nextView === state.view) {
+    return;
+  }
+
+  navigateToView(nextView, { fromHash: true });
 }
 
 function render() {
@@ -2392,8 +2490,10 @@ function render() {
       ${renderHeader(stats)}
       ${renderMobileDock()}
       <main class="view-shell">
-        ${state.error ? renderErrorBanner(state.error) : ""}
-        ${state.loading ? renderLoading() : renderCurrentView(stats)}
+        <div class="view-stage" data-view="${escapeAttribute(state.view)}">
+          ${state.error ? renderErrorBanner(state.error) : ""}
+          ${state.loading ? renderLoading() : renderCurrentView(stats)}
+        </div>
       </main>
     </div>
     ${renderRestTimer()}

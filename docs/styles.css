@@ -402,6 +402,15 @@ a {
 .view-shell {
   display: grid;
   gap: 20px;
+  overflow: clip;
+}
+
+.view-stage {
+  display: grid;
+  gap: 20px;
+  transform-origin: 50% 0;
+  will-change: transform, opacity, filter;
+  view-transition-name: xibapp-view;
 }
 
 .mobile-dock {
@@ -1785,6 +1794,60 @@ a {
   gap: 18px;
 }
 
+::view-transition-group(xibapp-view) {
+  animation-duration: 360ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+::view-transition-old(xibapp-view) {
+  animation-name: xibapp-view-out;
+}
+
+::view-transition-new(xibapp-view) {
+  animation-name: xibapp-view-in;
+}
+
+@keyframes xibapp-view-out {
+  0% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -18px, 0) scale(0.985);
+    filter: blur(10px);
+  }
+}
+
+@keyframes xibapp-view-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 26px, 0) scale(0.985);
+    filter: blur(12px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+    filter: blur(0px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-stage {
+    view-transition-name: none;
+    will-change: auto;
+  }
+
+  ::view-transition-group(xibapp-view),
+  ::view-transition-old(xibapp-view),
+  ::view-transition-new(xibapp-view) {
+    animation: none;
+  }
+}
+
 .rest-timer-tray {
   position: fixed;
   left: max(16px, env(safe-area-inset-left, 0px) + 10px);
@@ -2035,14 +2098,10 @@ a {
   .mobile-dock {
     display: flex;
     align-items: stretch;
-    overflow-x: auto;
-    overflow-y: visible;
-    padding: 8px 14px 10px 8px;
-    gap: 8px;
-    scroll-padding-inline: 14px;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    margin-top: -6px;
+    overflow: visible;
+    padding: 8px;
+    gap: 6px;
+    margin-top: -2px;
   }
 
   .mobile-dock::-webkit-scrollbar {
@@ -2050,35 +2109,50 @@ a {
   }
 
   .mobile-dock::before {
-    inset: 0 auto auto 16px;
-    width: 96px;
+    inset: 0 auto auto 14px;
+    width: 72px;
   }
 
   .mobile-dock-pill {
-    width: 54px;
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
     min-height: 54px;
-    padding: 10px;
-    flex: 0 0 auto;
-    border-radius: 20px;
-    justify-content: flex-start;
+    padding: 0;
+    border-radius: 18px;
+    justify-content: center;
+    background:
+      linear-gradient(135deg, rgba(27, 93, 115, 0.16), rgba(255, 255, 255, 0.02)),
+      linear-gradient(145deg, rgba(11, 28, 40, 0.9), rgba(7, 18, 28, 0.92));
   }
 
   .mobile-dock-icon {
-    width: 21px;
-    height: 21px;
-    flex: 0 0 21px;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
   }
 
   .mobile-dock-pill.is-active {
     width: auto;
-    min-width: 132px;
-    padding-right: 18px;
+    flex: 1.72 1.72 0;
+    min-width: 84px;
+    padding: 0 12px;
   }
 
   .mobile-dock-pill:hover,
   .mobile-dock-pill.is-active,
   .mobile-dock-pill:active {
     transform: none;
+  }
+
+  .mobile-dock-label {
+    display: block;
+    font-size: 11px;
+  }
+
+  .mobile-dock-pill.is-active .mobile-dock-label {
+    max-width: 64px;
+    margin-left: 8px;
   }
 
   .training-plan,
@@ -2132,7 +2206,7 @@ a {
 @media (max-width: 560px) {
   .app-root {
     width: min(calc(100% - 16px), var(--max-width));
-    padding-top: 12px;
+    padding-top: 10px;
     padding-bottom: 24px;
   }
 
@@ -2142,18 +2216,29 @@ a {
     grid-template-columns: 1fr;
   }
 
+  .masthead {
+    gap: 14px;
+    padding: 16px 14px;
+  }
+
+  .masthead-top,
+  .brand-line {
+    gap: 12px;
+  }
+
   .brand-lockup,
   .brand-line {
     align-items: start;
   }
 
   .brand-mark {
-    width: 60px;
-    height: 60px;
+    width: 56px;
+    height: 56px;
   }
 
   .brand-copy h1 {
-    font-size: clamp(28px, 11vw, 38px);
+    font-size: clamp(24px, 10vw, 34px);
+    letter-spacing: 0.01em;
   }
 
   .brand-copy p:last-child {
@@ -2161,8 +2246,9 @@ a {
   }
 
   .hero-copy h1 {
-    font-size: clamp(36px, 12vw, 52px);
-    line-height: 0.92;
+    font-size: clamp(30px, 10vw, 42px);
+    line-height: 0.94;
+    letter-spacing: 0.01em;
   }
 
   .hero-copy,
@@ -2182,7 +2268,7 @@ a {
   }
 
   .hero-copy {
-    gap: 16px;
+    gap: 12px;
   }
 
   .hero-copy p {
@@ -2205,7 +2291,17 @@ a {
 
   .status-pill {
     width: 100%;
-    justify-content: space-between;
+    min-height: 46px;
+    padding: 11px 14px;
+    justify-content: flex-start;
+    gap: 10px;
+    font-size: 14px;
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 8px;
   }
 
   .hero-actions,
@@ -2216,6 +2312,24 @@ a {
   .exercise-action-row,
   .timer-controls {
     grid-template-columns: 1fr;
+  }
+
+  .panel-title {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .meta-strip {
+    gap: 8px;
+  }
+
+  .chip,
+  .tag,
+  .challenge-type,
+  .family-count {
+    min-height: 42px;
+    padding: 8px 12px;
+    font-size: 13px;
   }
 
   .slider-row {
@@ -2235,22 +2349,40 @@ a {
   .mobile-dock {
     top: calc(8px + env(safe-area-inset-top, 0px));
     width: 100%;
-    padding: 7px 12px 9px 7px;
-    border-radius: 24px;
-    gap: 6px;
+    padding: 7px;
+    border-radius: 22px;
+    gap: 5px;
   }
 
   .mobile-dock-pill {
-    width: 50px;
-    min-height: 50px;
-    padding: 8px;
-    border-radius: 18px;
+    width: auto;
+    flex: 1 1 0;
+    min-height: 48px;
+    padding: 0;
+    border-radius: 16px;
   }
 
   .mobile-dock-pill.is-active {
     width: auto;
-    min-width: 118px;
-    padding-right: 16px;
+    flex: 1.82 1.82 0;
+    min-width: 78px;
+    padding: 0 10px 0 12px;
+  }
+
+  .mobile-dock-icon {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+  }
+
+  .mobile-dock-label {
+    font-size: 10px;
+    transform: translateX(-4px);
+  }
+
+  .mobile-dock-pill.is-active .mobile-dock-label {
+    max-width: 52px;
+    margin-left: 6px;
   }
 
   .toast {
