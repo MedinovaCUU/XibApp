@@ -402,15 +402,43 @@ a {
 .view-shell {
   display: grid;
   gap: 20px;
+  position: relative;
+  isolation: isolate;
   overflow: clip;
 }
 
 .view-stage {
   display: grid;
   gap: 20px;
+  backface-visibility: hidden;
   transform-origin: 50% 0;
   will-change: transform, opacity, filter;
   view-transition-name: xibapp-view;
+}
+
+.view-stage.is-transitioning-in > * {
+  animation: xibapp-stage-child-in 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.view-stage.is-transitioning-in > *:nth-child(2) {
+  animation-delay: 30ms;
+}
+
+.view-stage.is-transitioning-in > *:nth-child(3) {
+  animation-delay: 60ms;
+}
+
+.view-stage.is-transitioning-in > *:nth-child(4) {
+  animation-delay: 90ms;
+}
+
+.view-transition-clone {
+  position: absolute;
+  margin: 0;
+  pointer-events: none;
+  z-index: 30;
+  overflow: hidden;
+  transform-origin: 50% 0;
 }
 
 .mobile-dock {
@@ -1795,16 +1823,20 @@ a {
 }
 
 ::view-transition-group(xibapp-view) {
-  animation-duration: 360ms;
+  animation-duration: 560ms;
   animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 ::view-transition-old(xibapp-view) {
   animation-name: xibapp-view-out;
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.18, 1);
 }
 
 ::view-transition-new(xibapp-view) {
   animation-name: xibapp-view-in;
+  animation-duration: 560ms;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes xibapp-view-out {
@@ -1814,18 +1846,30 @@ a {
     filter: blur(0px);
   }
 
+  60% {
+    opacity: 0.22;
+    transform: translate3d(0, -18px, 0) scale(0.986);
+    filter: blur(14px);
+  }
+
   100% {
     opacity: 0;
-    transform: translate3d(0, -18px, 0) scale(0.985);
-    filter: blur(10px);
+    transform: translate3d(0, -24px, 0) scale(0.98);
+    filter: blur(20px);
   }
 }
 
 @keyframes xibapp-view-in {
   0% {
     opacity: 0;
-    transform: translate3d(0, 26px, 0) scale(0.985);
-    filter: blur(12px);
+    transform: translate3d(0, 30px, 0) scale(0.992);
+    filter: blur(16px);
+  }
+
+  55% {
+    opacity: 0.72;
+    transform: translate3d(0, 10px, 0) scale(0.997);
+    filter: blur(6px);
   }
 
   100% {
@@ -1835,10 +1879,26 @@ a {
   }
 }
 
+@keyframes xibapp-stage-child-in {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 14px, 0) scale(0.995);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .view-stage {
     view-transition-name: none;
     will-change: auto;
+  }
+
+  .view-stage.is-transitioning-in > * {
+    animation: none;
   }
 
   ::view-transition-group(xibapp-view),
@@ -2115,8 +2175,8 @@ a {
 
   .mobile-dock-pill {
     width: auto;
-    flex: 1 1 0;
-    min-width: 0;
+    flex: 0 0 auto;
+    min-width: 50px;
     min-height: 54px;
     padding: 0;
     border-radius: 18px;
@@ -2124,6 +2184,14 @@ a {
     background:
       linear-gradient(135deg, rgba(27, 93, 115, 0.16), rgba(255, 255, 255, 0.02)),
       linear-gradient(145deg, rgba(11, 28, 40, 0.9), rgba(7, 18, 28, 0.92));
+  }
+
+  .mobile-dock-pill:not(.is-active) {
+    width: 50px;
+    min-width: 50px;
+    min-height: 50px;
+    border-radius: 999px;
+    gap: 0;
   }
 
   .mobile-dock-icon {
@@ -2134,7 +2202,7 @@ a {
 
   .mobile-dock-pill.is-active {
     width: auto;
-    flex: 1.72 1.72 0;
+    flex: 1 1 auto;
     min-width: 84px;
     padding: 0 12px;
   }
@@ -2148,6 +2216,14 @@ a {
   .mobile-dock-label {
     display: block;
     font-size: 11px;
+  }
+
+  .mobile-dock-pill:not(.is-active) .mobile-dock-label {
+    display: none;
+  }
+
+  .mobile-dock-pill:not(.is-active) .mobile-dock-icon {
+    transform: translate(0.5px, -0.5px);
   }
 
   .mobile-dock-pill.is-active .mobile-dock-label {
@@ -2356,15 +2432,24 @@ a {
 
   .mobile-dock-pill {
     width: auto;
-    flex: 1 1 0;
+    flex: 0 0 auto;
+    min-width: 44px;
     min-height: 48px;
     padding: 0;
     border-radius: 16px;
   }
 
+  .mobile-dock-pill:not(.is-active) {
+    width: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 999px;
+    gap: 0;
+  }
+
   .mobile-dock-pill.is-active {
     width: auto;
-    flex: 1.82 1.82 0;
+    flex: 1 1 auto;
     min-width: 78px;
     padding: 0 10px 0 12px;
   }
@@ -2378,6 +2463,14 @@ a {
   .mobile-dock-label {
     font-size: 10px;
     transform: translateX(-4px);
+  }
+
+  .mobile-dock-pill:not(.is-active) .mobile-dock-label {
+    display: none;
+  }
+
+  .mobile-dock-pill:not(.is-active) .mobile-dock-icon {
+    transform: translate(0.5px, -0.5px);
   }
 
   .mobile-dock-pill.is-active .mobile-dock-label {

@@ -2409,39 +2409,85 @@ async function runViewTransition(update) {
   }
 
   const currentStage = appRoot.querySelector(".view-stage");
-  if (!(currentStage instanceof HTMLElement) || typeof currentStage.animate !== "function") {
+  const currentShell = appRoot.querySelector(".view-shell");
+  if (!(currentStage instanceof HTMLElement) || !(currentShell instanceof HTMLElement) || typeof currentStage.animate !== "function") {
     update();
     return;
   }
 
-  const viewOutFrames = [
-    { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0px)" },
-    { opacity: 0, transform: "translate3d(0, -16px, 0) scale(0.985)", filter: "blur(10px)" },
-  ];
-  const viewInFrames = [
-    { opacity: 0, transform: "translate3d(0, 24px, 0) scale(0.985)", filter: "blur(12px)" },
-    { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0px)" },
-  ];
-  const timing = {
-    duration: 340,
-    easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-    fill: "both",
-  };
-
-  try {
-    await currentStage.animate(viewOutFrames, timing).finished;
-  } catch (_error) {
-    // Ignore canceled fallback animations and proceed with the latest view.
-  }
-
-  update();
-
-  const nextStage = appRoot.querySelector(".view-stage");
-  if (!(nextStage instanceof HTMLElement) || typeof nextStage.animate !== "function") {
+  const currentRect = currentStage.getBoundingClientRect();
+  const currentShellRect = currentShell.getBoundingClientRect();
+  const clone = currentStage.cloneNode(true);
+  if (!(clone instanceof HTMLElement)) {
+    update();
     return;
   }
 
-  nextStage.animate(viewInFrames, timing);
+  clone.classList.add("view-transition-clone");
+  clone.style.left = `${currentShellRect.left + window.scrollX}px`;
+  clone.style.top = `${currentShellRect.top + window.scrollY}px`;
+  clone.style.width = `${currentShellRect.width}px`;
+  clone.style.height = `${currentRect.height}px`;
+  document.body.append(clone);
+
+  update();
+
+  const nextShell = appRoot.querySelector(".view-shell");
+  const nextStage = appRoot.querySelector(".view-stage");
+  if (!(nextShell instanceof HTMLElement) || !(nextStage instanceof HTMLElement) || typeof nextStage.animate !== "function") {
+    clone.remove();
+    return;
+  }
+
+  const nextRect = nextStage.getBoundingClientRect();
+  nextShell.style.minHeight = `${Math.max(currentRect.height, nextRect.height)}px`;
+  nextStage.classList.add("is-transitioning-in");
+  nextStage.style.opacity = "0";
+  nextStage.style.transform = "translate3d(0, 30px, 0) scale(0.992)";
+  nextStage.style.filter = "blur(16px)";
+  nextStage.style.pointerEvents = "none";
+
+  await new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+
+  const cloneAnimation = clone.animate(
+    [
+      { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0px)" },
+      { opacity: 0.22, transform: "translate3d(0, -18px, 0) scale(0.986)", filter: "blur(14px)" },
+      { opacity: 0, transform: "translate3d(0, -24px, 0) scale(0.98)", filter: "blur(20px)" },
+    ],
+    {
+      duration: 420,
+      easing: "cubic-bezier(0.55, 0, 0.18, 1)",
+      fill: "both",
+    }
+  );
+
+  const stageAnimation = nextStage.animate(
+    [
+      { opacity: 0, transform: "translate3d(0, 30px, 0) scale(0.992)", filter: "blur(16px)" },
+      { opacity: 0.72, transform: "translate3d(0, 10px, 0) scale(0.997)", filter: "blur(6px)" },
+      { opacity: 1, transform: "translate3d(0, 0, 0) scale(1)", filter: "blur(0px)" },
+    ],
+    {
+      duration: 560,
+      easing: "cubic-bezier(0.16, 1, 0.3, 1)",
+      fill: "both",
+    }
+  );
+
+  try {
+    await Promise.allSettled([cloneAnimation.finished, stageAnimation.finished]);
+  } finally {
+    clone.remove();
+    nextStage.classList.remove("is-transitioning-in");
+    nextStage.style.opacity = "";
+    nextStage.style.transform = "";
+    nextStage.style.filter = "";
+    nextStage.style.pointerEvents = "";
+    nextShell.style.minHeight = "";
+  }
 }
 
 function navigateToView(nextView, { fromHash = false } = {}) {
