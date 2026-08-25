@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "MagmaWave Caps";
+  src: url("./assets/magmawave-caps.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
   --obsidian-top: #071019;
@@ -39,7 +47,7 @@
   --radius-md: 20px;
   --radius-sm: 15px;
   --max-width: 1320px;
-  --font-display: "Cormorant Garamond", serif;
+  --font-display: "MagmaWave Caps", "Cormorant Garamond", serif;
   --font-ui: "Oxanium", sans-serif;
   --glyph-celestial: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 72 72' fill='none'%3E%3Ccircle cx='36' cy='36' r='20' stroke='%23e0c486' stroke-opacity='.18' stroke-width='1.8'/%3E%3Cpath d='M36 11v7M36 54v7M11 36h7M54 36h7' stroke='%238dc8d3' stroke-opacity='.18' stroke-width='1.8' stroke-linecap='round'/%3E%3Cpath d='M28 28h16v16H28zM32 20h8v8h-8zM32 44h8v8h-8zM20 32h8v8h-8zM44 32h8v8h-8z' stroke='%23f6eee2' stroke-opacity='.12' stroke-width='1.6' stroke-linejoin='round'/%3E%3Ccircle cx='36' cy='36' r='3' fill='%23e0c486' fill-opacity='.2'/%3E%3C/svg%3E");
   --glyph-chip: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M8 2h4v4h4v4h-4v4H8v-4H4V6h4z' stroke='%23e0c486' stroke-width='1.4' stroke-linejoin='round'/%3E%3Ccircle cx='10' cy='10' r='1.2' fill='%238dc8d3'/%3E%3C/svg%3E");
@@ -375,8 +383,8 @@ a {
 .timeline-card h4,
 .family-card h4 {
   font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-weight: 400;
+  letter-spacing: 0.02em;
   text-wrap: balance;
 }
 
